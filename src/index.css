@@ -104,6 +104,45 @@ body {
   opacity: 0;
 }
 
+/* Network diagram effects, modelled on Protocol Explorer */
+.net-lane.is-flowing {
+  animation: lane-flow 0.55s linear infinite;
+}
+.net-lane.is-flowing.is-reverse {
+  animation-direction: reverse;
+}
+@keyframes lane-flow {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+.net-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: net-pulse 0.9s ease-out forwards;
+}
+@keyframes net-pulse {
+  from {
+    opacity: 0.9;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+.net-tag.is-lost {
+  opacity: 0.55;
+}
+.net-caret {
+  animation: caret 0.9s steps(1) infinite;
+}
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
 dialog::backdrop {
   background: rgb(5 8 20 / 0.6);
 }

@@ -1,6 +1,6 @@
 import { Camera, Cloud, Cpu, Laptop, Network, Phone, Printer, Router, Server, Wifi, Workflow, type LucideIcon } from 'lucide-react'
 import { nodeLabel, useLang, useT } from '../i18n'
-import { memo, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { kindColor, LINKS, NODES, addrOf, nodesFor, route, type NodeId, type NodeKind, type Packet, type Protocol } from '../data/protocols'
 
 const ICONS: Record<NodeKind, LucideIcon> = {
@@ -143,24 +143,25 @@ export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) 
 })
 
 /** Static topology: only re-renders when the protocol or the highlighted route changes, never per frame. */
-const Topology = memo(function Topology({ visible, revealed, links, delays, active, color }: { visible: Set<NodeId>; revealed: Set<NodeId>; links: Set<string>; delays: Map<NodeId, number>; active: Set<NodeId>; color: string }) {
+const Topology = memo(function Topology({ visible, revealed, links, delays, active, flow, color }: { visible: Set<NodeId>; revealed: Set<NodeId>; links: Set<string>; delays: Map<NodeId, number>; active: Set<NodeId>; flow: Map<string, 1 | -1>; color: string }) {
   const lang = useLang()
   return (
     <>
       {LINKS.filter(([a, b]) => visible.has(a) && visible.has(b)).map(([a, b]) => {
-        const on = active.has(a) && active.has(b)
+        const dir = flow.get(a + b)
+        const on = dir !== undefined
         return (
           <line
             key={a + b}
-            className="net-lane"
+            className={`net-lane${on ? (dir === 1 ? ' is-flowing' : ' is-flowing is-reverse') : ''}`}
             data-hidden={links.has(a + b) || links.has(b + a) ? undefined : ''}
             x1={NODES[a].x}
             y1={NODES[a].y}
             x2={NODES[b].x}
             y2={NODES[b].y}
-            stroke={on ? color : 'var(--line)'}
-            strokeWidth={on ? 2.5 : 1.5}
-            strokeDasharray={on ? undefined : '4 4'}
+            stroke={on ? color : 'var(--line-strong)'}
+            strokeWidth={on ? 2.6 : 1.6}
+            strokeDasharray="6 5"
           />
         )
       })}
@@ -190,15 +191,24 @@ const Topology = memo(function Topology({ visible, revealed, links, delays, acti
 const EMPTY = new Set<NodeId>()
 
 function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { protocol: Protocol; packet: Packet | null; step: number; durationMs: number; summary: string }) {
-  const t = useT()
   const reduced = usePrefersReducedMotion()
   const visible = nodesFor(protocol)
   const full = useMemo(() => boxFor(visible), [visible])
   const path = packet ? route(packet.from, packet.to) : null
   const active = useMemo(() => (path ? new Set(path) : EMPTY), [path])
+  const flow = useMemo(() => {
+    const m = new Map<string, 1 | -1>()
+    path?.slice(1).forEach((v, i) => {
+      const u = path[i]
+      const fwd = LINKS.some(([a, b]) => a === u && b === v)
+      m.set(fwd ? u + v : v + u, fwd ? 1 : -1)
+    })
+    return m
+  }, [path])
   const color = packet ? kindColor(packet.kind) : ''
 
   const dotRef = useRef<SVGGElement>(null)
+  const lost = !!packet && packet.kind === 'err' && /PERDIDO/.test(packet.info)
   const [arrived, setArrived] = useState(false)
 
   // Move the packet by writing the transform directly: zero React renders while it travels.
@@ -227,13 +237,22 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
     }
     place(0)
     raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    const fallback = window.setTimeout(() => {
+      cancelAnimationFrame(raf)
+      place(1)
+      setArrived(true)
+    }, ms + 250)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearTimeout(fallback)
+    }
   }, [path, step, durationMs, reduced])
 
   // ── Camera: close-up on the first sender, zoom out to the whole network, then frame each packet's path ──
   const svgRef = useRef<SVGSVGElement>(null)
   const cam = useRef<Box | null>(null)
   const camRaf = useRef(0)
+  const camFallback = useRef(0)
   const aspect = full.w / full.h
 
   // Like the original: only the devices the conversation has reached so far are on screen,
@@ -258,9 +277,34 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
     return { revealed, links, delays }
   }, [protocol, step])
   const first = protocol.packets[0]?.from
-  const target = step < 0 && first ? fit(boxFor([first]), aspect, full.w * 0.34) : fit(boxFor(revealed), aspect, full.w * 0.42)
-  const targetKey = toAttr(target)
   const shownProtocol = useRef<string | null>(null)
+
+  const web = WEB_LESSONS[protocol.id]
+  const [typed, setTyped] = useState(0)
+  useEffect(() => {
+    if (!web) return
+    if (reduced || step >= 0) {
+      setTyped(web.url.length)
+      return
+    }
+    setTyped(0)
+    let n = 0
+    const id = setInterval(() => {
+      n++
+      setTyped(n)
+      if (n >= web.url.length) clearInterval(id)
+    }, 85)
+    return () => clearInterval(id)
+  }, [web, step, reduced])
+  const urlBar = web && protocol.packets[0]?.from === 'client' ? { text: web.url.slice(0, typed), secure: web.secure, typing: typed < web.url.length, loaded: step === protocol.packets.length - 1 } : null
+  const closeUp = first ? boxFor([first]) : full
+  if (web && first === 'client') {
+    closeUp.y -= 70
+    closeUp.h += 70
+    closeUp.w = Math.max(closeUp.w, 300)
+  }
+  const target = step < 0 && first ? fit(closeUp, aspect, full.w * 0.34) : fit(boxFor(revealed), aspect, full.w * 0.42)
+  const targetKey = toAttr(target)
 
   useLayoutEffect(() => {
     const svg = svgRef.current
@@ -279,31 +323,38 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
         if (k < 1) camRaf.current = requestAnimationFrame(tick)
       }
       camRaf.current = requestAnimationFrame(tick)
+      // if frames are paused (hidden tab/pane), still end up on the right framing
+      clearTimeout(camFallback.current)
+      camFallback.current = window.setTimeout(() => {
+        cancelAnimationFrame(camRaf.current)
+        set(to)
+      }, ms + 250)
     }
 
     const isNewLesson = shownProtocol.current !== protocol.id
     shownProtocol.current = protocol.id
     if (reduced || isNewLesson) set(target)
     else animate(target, 1100)
-    return () => cancelAnimationFrame(camRaf.current)
+    return () => {
+      cancelAnimationFrame(camRaf.current)
+      clearTimeout(camFallback.current)
+    }
     // targetKey captures every change of `target`
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [protocol.id, targetKey, reduced])
 
   return (
     <svg ref={svgRef} role="img" aria-label={summary} className="h-full max-h-[460px] w-full">
-      <Topology visible={visible} revealed={revealed} links={links} delays={delays} active={active} color={color} />
+      <Topology visible={visible} revealed={revealed} links={links} delays={delays} active={active} flow={flow} color={color} />
       {packet && (
         <g ref={dotRef} aria-hidden style={{ willChange: 'transform' }}>
-          <circle r={14} fill={color} opacity={0.25} />
-          <circle r={8} fill={color} stroke="var(--bg)" strokeWidth={2} />
-          {packet.kind === 'err' && /PERDIDO/.test(packet.info) && arrived && (
-            <text y={-20} textAnchor="middle" fontSize="13" fontWeight="700" fill={color}>
-              {t('✕ perdido')}
-            </text>
-          )}
+          <PacketTag packet={packet} color={color} lost={lost && arrived} />
         </g>
       )}
+      {packet && arrived && !lost && (
+        <circle key={`pulse-${step}`} className="net-pulse" cx={NODES[packet.to].x} cy={NODES[packet.to].y} r={34} fill="none" stroke={color} strokeWidth={2.5} aria-hidden />
+      )}
+      {urlBar && <UrlBar x={NODES.client.x} y={NODES.client.y} text={urlBar.text} secure={urlBar.secure} typing={urlBar.typing} loaded={urlBar.loaded} />}
     </svg>
   )
 }
@@ -350,3 +401,88 @@ const SequenceDiagram = memo(function SequenceDiagram({ protocol, step, summary 
     </svg>
   )
 })
+
+/** Lessons that start with the user typing an address, as in the original. */
+const WEB_LESSONS: Record<string, { url: string; secure: boolean }> = {
+  http: { url: 'www.ejemplo.com', secure: false },
+  https: { url: 'https://www.ejemplo.com', secure: true },
+  http2: { url: 'https://www.ejemplo.com', secure: true },
+  http3: { url: 'https://www.ejemplo.com', secure: true },
+  websocket: { url: 'www.ejemplo.com/chat', secure: false },
+  tls: { url: 'https://www.ejemplo.com', secure: true },
+  proxy: { url: 'https://www.ejemplo.com', secure: true },
+  captive: { url: 'www.ejemplo.com', secure: false },
+  nat: { url: 'www.ejemplo.com', secure: false },
+}
+
+/** Short label shown on the travelling packet (SYN, DNS QUERY, CLIENT HELLO…). */
+function tagLabel(p: Packet) {
+  const flags = p.info.match(/\[([A-Z, ]+)\]/)?.[1]
+  if (p.proto === 'TCP' && flags) return flags.replace(/, /g, '-').replace('PSH-ACK', 'DATA')
+  if (p.proto === 'DNS') return p.kind === 'req' || /Consulta/.test(p.info) ? 'DNS QUERY' : 'DNS ANSWER'
+  const hello = p.info.match(/(Client|Server) Hello/)
+  if (hello) return `${hello[1].toUpperCase()} HELLO`
+  if (/Application Data/.test(p.info)) return 'APP DATA'
+  const status = p.info.match(/^(HTTP\/[\d.]+|RTSP\/[\d.]+|SIP\/[\d.]+) (\d{3})/)
+  if (status) return `${p.proto} ${status[2]}`
+  const word = p.info.match(/^([A-Z][A-Z_-]{2,})\b/)?.[1]
+  return (word && word.length <= 12 ? `${p.proto === word ? '' : p.proto + ' '}${word}` : p.proto).toUpperCase()
+}
+
+function PacketTag({ packet, color, lost }: { packet: Packet; color: string; lost: boolean }) {
+  const label = tagLabel(packet)
+  const field = (packet.display ?? packet.info).replace(/\s+/g, ' ')
+  const short = field.length > 30 ? field.slice(0, 29) + '…' : field
+  const locked = packet.kind === 'tls'
+  const tagW = label.length * 8.2 + (locked ? 36 : 22)
+  const bodyW = Math.max(tagW, short.length * 6.9 + 18)
+  return (
+    <g className={lost ? 'net-tag is-lost' : 'net-tag'}>
+      <rect x={-bodyW / 2} y={11} width={bodyW} height={22} rx={3} fill="var(--panel)" stroke={color} strokeWidth={1.5} />
+      <text x={0} y={26} textAnchor="middle" fontSize="11.5" fontWeight="600" fill="var(--fg)">
+        {short}
+      </text>
+      <rect x={-tagW / 2} y={-12} width={tagW} height={24} rx={4} fill={color} />
+      {locked && (
+        <g transform={`translate(${-tagW / 2 + 9} -6)`} fill="none" stroke="var(--k-on)" strokeWidth={1.5} strokeLinejoin="round">
+          <rect x={0} y={5} width={10} height={8} rx={1.5} />
+          <path d="M2.5 5V3a2.5 2.5 0 0 1 5 0v2" />
+        </g>
+      )}
+      <text x={locked ? 7 : 0} y={4.5} textAnchor="middle" fontSize="12.5" fontWeight="800" letterSpacing="0.06em" fill="var(--k-on)">
+        {label}
+      </text>
+      {lost && (
+        <path d="M-14 -40 l28 28 M14 -40 l-28 28" className="net-drop" stroke="var(--k-err)" strokeWidth={4} strokeLinecap="round" />
+      )}
+    </g>
+  )
+}
+
+function UrlBar({ x, y, text, secure, typing, loaded }: { x: number; y: number; text: string; secure: boolean; typing: boolean; loaded: boolean }) {
+  const w = 230
+  const bx = x - 40
+  const by = y - 108
+  return (
+    <g className="net-url" aria-hidden>
+      <path d={`M${x} ${y - 32} L${x} ${by + 30}`} stroke="var(--line-strong)" strokeWidth={1.5} strokeDasharray="3 3" fill="none" />
+      <rect x={bx} y={by} width={w} height={30} rx={4} fill="var(--panel)" stroke="var(--accent)" strokeWidth={1.6} />
+      {secure ? (
+        <g transform={`translate(${bx + 10} ${by + 8})`} fill="none" stroke="var(--k-tcp)" strokeWidth={1.6} strokeLinejoin="round">
+          <rect x={0} y={6} width={11} height={8} rx={1.5} />
+          <path d="M2.5 6V4a3 3 0 0 1 6 0v2" />
+        </g>
+      ) : (
+        <g transform={`translate(${bx + 16} ${by + 15})`} fill="none" stroke="var(--accent)" strokeWidth={1.3}>
+          <circle r={6} />
+          <path d="M-6 0h12M0 -6c-3 3.5 -3 8.5 0 12M0 -6c3 3.5 3 8.5 0 12" />
+        </g>
+      )}
+      <text x={bx + 30} y={by + 20} fontSize="13" fontWeight="600" fill="var(--fg)">
+        {text}
+        {typing && <tspan className="net-caret">|</tspan>}
+      </text>
+      {loaded && <path d={`M${bx + w - 22} ${by + 15} l4 4 l8 -9`} stroke="var(--k-tcp)" strokeWidth={2.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />}
+    </g>
+  )
+}
