@@ -101,7 +101,7 @@ export default function App() {
       </main>
 
       <footer className="border-t border-line px-4 py-4 text-center text-xs text-muted">
-        Diseñado por <strong className="text-fg">David</strong> · Inspirado en Protocol Explorer · Hecho con React y Tailwind CSS
+        Diseñado por{' '}<a href="https://github.com/davidzabalaasir-create" target="_blank" rel="noopener noreferrer" className="font-bold text-fg underline">David</a> · Inspirado en Protocol Explorer · Hecho con React y Tailwind CSS
       </footer>
 
       <ProtocolDrawer
