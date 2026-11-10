@@ -42,15 +42,31 @@ function makePath(pts: Pt[]) {
   }
 }
 
-/** Crop the diagram to the nodes in use so small scenarios aren't lost in empty space. */
-function viewBoxFor(ids: Set<NodeId>) {
+type Box = { x: number; y: number; w: number; h: number }
+
+/** Bounding box of some nodes, with room for the labels under each icon. */
+function boxFor(ids: Iterable<NodeId>): Box {
   const ns = [...ids].map((id) => NODES[id])
   const minX = Math.min(...ns.map((n) => n.x)) - 90
   const maxX = Math.max(...ns.map((n) => n.x)) + 90
   const minY = Math.min(...ns.map((n) => n.y)) - 50
   const maxY = Math.max(...ns.map((n) => n.y)) + 80
-  return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
 }
+
+/** Grow a box around its centre to the given aspect ratio and a minimum width (so the layout never jumps). */
+function fit(b: Box, aspect: number, minW: number): Box {
+  let w = Math.max(b.w, minW)
+  let h = w / aspect
+  if (h < b.h) {
+    h = b.h
+    w = h * aspect
+  }
+  return { x: b.x + b.w / 2 - w / 2, y: b.y + b.h / 2 - h / 2, w, h }
+}
+
+const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
+const toAttr = (b: Box) => `${b.x} ${b.y} ${b.w} ${b.h}`
 
 interface Props {
   protocol: Protocol
@@ -175,7 +191,7 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
   const t = useT()
   const reduced = usePrefersReducedMotion()
   const visible = nodesFor(protocol)
-  const viewBox = useMemo(() => viewBoxFor(visible), [visible])
+  const full = useMemo(() => boxFor(visible), [visible])
   const path = packet ? route(packet.from, packet.to) : null
   const active = useMemo(() => (path ? new Set(path) : EMPTY), [path])
   const color = packet ? kindColor(packet.kind) : ''
@@ -212,8 +228,51 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
     return () => cancelAnimationFrame(raf)
   }, [path, step, durationMs, reduced])
 
+  // ── Camera: close-up on the first sender, zoom out to the whole network, then frame each packet's path ──
+  const svgRef = useRef<SVGSVGElement>(null)
+  const cam = useRef<Box | null>(null)
+  const camRaf = useRef(0)
+  const shownProtocol = useRef<string | null>(null)
+  const aspect = full.w / full.h
+  const target = path ? fit(boxFor(path), aspect, full.w * 0.55) : full
+  const targetKey = toAttr(target)
+
+  useLayoutEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    const set = (b: Box) => {
+      cam.current = b
+      svg.setAttribute('viewBox', toAttr(b))
+    }
+    const animate = (to: Box, ms: number, delay = 0) => {
+      cancelAnimationFrame(camRaf.current)
+      const from = cam.current ?? to
+      const start = performance.now() + delay
+      const tick = (now: number) => {
+        const k = easeInOutCubic(Math.min(Math.max((now - start) / ms, 0), 1))
+        set({ x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k, w: from.w + (to.w - from.w) * k, h: from.h + (to.h - from.h) * k })
+        if (k < 1) camRaf.current = requestAnimationFrame(tick)
+      }
+      camRaf.current = requestAnimationFrame(tick)
+    }
+
+    const isNewLesson = shownProtocol.current !== protocol.id
+    shownProtocol.current = protocol.id
+    if (reduced) set(target)
+    else if (isNewLesson && step < 0) {
+      // intro: start tight on whoever speaks first, like a camera pulling back
+      const first = protocol.packets[0]?.from
+      set(first ? fit(boxFor([first]), aspect, full.w * 0.34) : full)
+      animate(full, 1600, 450)
+    } else if (isNewLesson) set(target)
+    else animate(target, 750)
+    return () => cancelAnimationFrame(camRaf.current)
+    // targetKey captures every change of `target`
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [protocol.id, targetKey, reduced])
+
   return (
-    <svg viewBox={viewBox} role="img" aria-label={summary} className="h-full max-h-[460px] w-full">
+    <svg ref={svgRef} role="img" aria-label={summary} className="h-full max-h-[460px] w-full">
       <Topology visible={visible} active={active} color={color} />
       {packet && (
         <g ref={dotRef} aria-hidden style={{ willChange: 'transform' }}>
