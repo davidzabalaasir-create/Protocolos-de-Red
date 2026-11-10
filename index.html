@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Protocolos de Red · Aprende cómo funciona Internet</title>
+    <meta name="description" content="Mira Internet funcionar paquete a paquete: lecciones interactivas sobre HTTP, HTTPS, DNS, DHCP, TCP, UDP, ICMP, ARP, SSH y SMTP." />
+    <meta name="author" content="David" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      try {
+        const saved = localStorage.getItem('protocolos:theme')
+        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      } catch {
+        document.documentElement.dataset.theme = 'dark'
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="margin: 40px; font: 16px/1.5 ui-monospace, monospace">
+        Protocolos de Red anima los paquetes mientras viajan por la red, así que necesita JavaScript.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
