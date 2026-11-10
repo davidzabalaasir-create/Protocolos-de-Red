@@ -1,6 +1,6 @@
 # Protocolos de Red
 
-Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de HTTP, HTTPS, DNS, DHCP, TCP, UDP, ICMP, ARP, SSH y SMTP, paso a paso, en un diagrama de red, un diagrama de secuencia y una tabla tipo Wireshark.
+Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de **16 protocolos** —HTTP, HTTPS, HTTP/3 (QUIC), WebSocket, DNS, DHCP, NTP, SSH, SMTP, IMAP, BGP, TCP, UDP, ICMP, WireGuard y ARP— paso a paso, en un diagrama de red, un diagrama de secuencia y una tabla tipo Wireshark, con **cada paquete decodificado byte a byte**.
 
 **Diseñado por David.** Interfaz inspirada en [Protocol Explorer](https://protocol-explorer-alpha.vercel.app/), reconstruida desde cero con React + Tailwind CSS y contenido propio en español.
 
@@ -10,8 +10,12 @@ Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de H
 - **Buscador** con atajo `Ctrl K` y navegación con flechas.
 - **Selector de capa OSI** (1–7): marca la capa del protocolo actual y filtra la lista.
 - **Escenario** con dos vistas: *Red* (los paquetes recorren la topología) y *Secuencia*.
-- **Vista general**: descripción, capa, puerto, transporte y RFC.
-- **Flujo de paquetes**: reproducir/pausa, paso a paso, retroceder, reiniciar y velocidad 0.5×–2×.
+- **Panel lateral con pestañas**:
+  - *Resumen*: descripción, capa, puerto, transporte y RFC.
+  - *Inspector*: cada paquete construido byte a byte (Ethernet, IPv4, TCP/UDP/ICMP/ARP y la carga de la aplicación: DNS, DHCP, NTP, BGP, TLS, QUIC, WireGuard, WebSocket…), con longitudes y checksums IPv4/TCP/UDP calculados de verdad. Al pasar por un campo se resaltan sus bytes en el volcado hexadecimal.
+  - *Quiz*: preguntas con explicación para cada protocolo.
+- **Progreso guardado**: una lección cuenta como completada al verla entera y acertar su quiz; el panel de protocolos muestra el avance (n/16).
+- **Flujo de paquetes**: reproducir/pausa, paso a paso, retroceder, reiniciar, velocidad 0.5×–2×, barra de progreso, botón para inspeccionar cada paquete y atajos (`Espacio`, `←`/`→`, `R`).
 - Enlaces directos por protocolo: `/#dns`, `/#tcp`, etc.
 
 ## Desarrollo

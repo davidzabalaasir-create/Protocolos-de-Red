@@ -1,4 +1,4 @@
-import { ChevronLeft, Pause, Play, RotateCcw, StepForward } from 'lucide-react'
+import { Binary, ChevronLeft, Pause, Play, RotateCcw, StepForward } from 'lucide-react'
 import { memo, useEffect, useRef, type Ref } from 'react'
 import { KIND_META, addrOf, type Packet, type Protocol } from '../data/protocols'
 import { Button } from './ui/Button'
@@ -12,6 +12,7 @@ interface Props {
   onPlay: () => void
   onSpeed: (s: number) => void
   onReset: () => void
+  onInspect: (i: number) => void
 }
 
 const SPEEDS = [0.5, 1, 2]
@@ -21,7 +22,7 @@ function isInteractiveTarget(el: EventTarget | null) {
   return el instanceof HTMLElement && !!el.closest('input, select, textarea, button, a, [role="tab"], [role="radio"], dialog[open]')
 }
 
-export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, speed, onStep, onPlay, onSpeed, onReset }: Props) {
+export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, speed, onStep, onPlay, onSpeed, onReset, onInspect }: Props) {
   const kinds = [...new Set(protocol.packets.map((p) => p.kind))]
   const total = protocol.packets.length
   const last = total - 1
@@ -84,7 +85,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
             ))}
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <Button size="icon" label="Paquete anterior" shortcut="←" onClick={() => onStep(step - 1)} disabled={step <= 0}>
               <ChevronLeft aria-hidden className="size-5" />
             </Button>
@@ -132,7 +133,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
           <caption className="sr-only">Paquetes de {protocol.name}. Selecciona una fila para ir a ese paquete.</caption>
           <thead className="sticky top-0 z-10 bg-panel">
             <tr className="text-[11px] tracking-wider uppercase">
-              {['N.º', 'Tiempo', 'Origen', 'Destino', 'Protocolo', 'Info', 'Tamaño'].map((h) => (
+              {['N.º', 'Tiempo', 'Origen', 'Destino', 'Protocolo', 'Info', 'Tamaño', 'Bytes'].map((h) => (
                 <th key={h} scope="col" className="px-4 py-2 font-bold">
                   {h}
                 </th>
@@ -141,7 +142,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
           </thead>
           <tbody>
             {protocol.packets.map((p, i) => (
-              <Row key={i} p={p} i={i} current={i === step} onStep={onStep} rowRef={i === step ? rowRef : undefined} />
+              <Row key={i} p={p} i={i} current={i === step} onStep={onStep} onInspect={onInspect} rowRef={i === step ? rowRef : undefined} />
             ))}
           </tbody>
         </table>
@@ -151,7 +152,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
 })
 
 /** Memoized so a step change only re-renders the two rows whose state changed. */
-const Row = memo(function Row({ p, i, current, onStep, rowRef }: { p: Packet; i: number; current: boolean; onStep: (i: number) => void; rowRef?: Ref<HTMLTableRowElement> }) {
+const Row = memo(function Row({ p, i, current, onStep, onInspect, rowRef }: { p: Packet; i: number; current: boolean; onStep: (i: number) => void; onInspect: (i: number) => void; rowRef?: Ref<HTMLTableRowElement> }) {
   return (
     <tr
       ref={rowRef}
@@ -179,6 +180,20 @@ const Row = memo(function Row({ p, i, current, onStep, rowRef }: { p: Packet; i:
       <td className="px-4 py-1">{p.proto}</td>
       <td className="px-4 py-1">{p.info}</td>
       <td className="px-4 py-1 tabular-nums">{p.size}</td>
+      <td className="px-2 py-1">
+        <button
+          type="button"
+          title="Ver bytes en el inspector"
+          onClick={(e) => {
+            e.stopPropagation()
+            onInspect(i)
+          }}
+          className="grid size-8 place-items-center rounded-md border border-line-strong transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-accent-fg"
+        >
+          <Binary aria-hidden className="size-4" />
+          <span className="sr-only">Inspeccionar paquete {i + 1}</span>
+        </button>
+      </td>
     </tr>
   )
 })

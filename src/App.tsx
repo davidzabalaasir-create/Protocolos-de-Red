@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Header } from './components/Header'
-import { Overview } from './components/Overview'
 import { PacketFlow } from './components/PacketFlow'
 import { ProtocolDrawer } from './components/ProtocolDrawer'
+import { SidePanel, type PanelTab } from './components/SidePanel'
 import { Stage } from './components/Stage'
 import { Toolbar } from './components/Toolbar'
 import { PROTOCOLS } from './data/protocols'
+import { QUIZ } from './data/quiz'
+import { isDone, useProgress } from './lib/progress'
 
 type Theme = 'light' | 'dark'
 const STEP_MS = 1400
@@ -18,6 +20,8 @@ export default function App() {
   const [speed, setSpeed] = useState(1)
   const [drawer, setDrawer] = useState(false)
   const [layerFilter, setLayerFilter] = useState<number | null>(null)
+  const [tab, setTab] = useState<PanelTab>('overview')
+  const { progress, markWatched, setQuizScore } = useProgress()
 
   const protocol = PROTOCOLS.find((p) => p.id === protocolId) ?? PROTOCOLS[0]
   const last = protocol.packets.length - 1
@@ -35,6 +39,11 @@ export default function App() {
     history.replaceState(null, '', `#${protocol.id}`)
     document.title = `${protocol.name} · Protocolos de Red`
   }, [protocol.id, protocol.name])
+
+  // a lesson counts as watched once its last packet is reached
+  useEffect(() => {
+    if (step === last) markWatched(protocol.id)
+  }, [step, last, protocol.id, markWatched])
 
   // playback
   useEffect(() => {
@@ -72,11 +81,29 @@ export default function App() {
     setPlaying(false)
     setStep(-1)
   }, [])
+  const inspect = useCallback(
+    (i: number) => {
+      goTo(i)
+      setTab('inspector')
+    },
+    [goTo],
+  )
+  const onScore = useCallback((score: number) => setQuizScore(protocolId, score), [protocolId, setQuizScore])
   const openMenu = useCallback(() => setDrawer(true), [])
   const openLayer = useCallback((l: number) => {
     setLayerFilter(l)
     setDrawer(true)
   }, [])
+
+  // follow #protocol links typed in the address bar or shared
+  useEffect(() => {
+    const onHash = () => {
+      const id = location.hash.slice(1)
+      if (PROTOCOLS.some((p) => p.id === id)) select(id)
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [select])
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -95,9 +122,17 @@ export default function App() {
 
       <main id="main" className="flex flex-1 flex-col gap-3 px-3 pb-3 sm:px-4">
         <h1 className="sr-only">Protocolos de Red: {protocol.name}</h1>
-        <div className="grid gap-3 lg:grid-cols-[1fr_minmax(18rem,22rem)]">
+        <div className="grid items-start gap-3 lg:grid-cols-[1fr_minmax(20rem,26rem)]">
           <Stage protocol={protocol} step={step} durationMs={STEP_MS / speed} />
-          <Overview protocol={protocol} />
+          <SidePanel
+            protocol={protocol}
+            step={step}
+            tab={tab}
+            onTab={setTab}
+            done={isDone(progress, protocol.id, QUIZ[protocol.id]?.length ?? 0)}
+            bestScore={progress.quiz[protocol.id]}
+            onScore={onScore}
+          />
         </div>
         <PacketFlow
           protocol={protocol}
@@ -108,6 +143,7 @@ export default function App() {
           onStep={goTo}
           onPlay={togglePlay}
           onReset={reset}
+          onInspect={inspect}
         />
       </main>
 
@@ -119,6 +155,7 @@ export default function App() {
         open={drawer}
         layer={layerFilter}
         currentId={protocol.id}
+        progress={progress}
         onClose={() => {
           setDrawer(false)
           setLayerFilter(null)

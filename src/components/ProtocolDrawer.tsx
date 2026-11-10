@@ -1,19 +1,22 @@
-import { X } from 'lucide-react'
+import { CircleCheck, X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
+import { QUIZ } from '../data/quiz'
+import { isDone, type Progress } from '../lib/progress'
 import { Button } from './ui/Button'
 
 interface Props {
   open: boolean
   layer: number | null
   currentId: string
+  progress: Progress
   onClose: () => void
   onSelect: (id: string) => void
   onLayer: (layer: number | null) => void
 }
 
 /** Side panel listing protocols, grouped by OSI layer. Native <dialog> gives focus trapping and Escape. */
-export function ProtocolDrawer({ open, layer, currentId, onClose, onSelect, onLayer }: Props) {
+export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSelect, onLayer }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -23,6 +26,7 @@ export function ProtocolDrawer({ open, layer, currentId, onClose, onSelect, onLa
     if (!open && d.open) d.close()
   }, [open])
 
+  const doneCount = PROTOCOLS.filter((p) => isDone(progress, p.id, QUIZ[p.id]?.length ?? 0)).length
   const layers = [7, 4, 3, 2].filter((l) => layer === null || l === layer)
 
   return (
@@ -34,9 +38,17 @@ export function ProtocolDrawer({ open, layer, currentId, onClose, onSelect, onLa
       className="m-0 h-full max-h-none w-[min(22rem,100vw)] border-r border-line bg-panel p-0 text-fg"
     >
       <div className="flex items-center justify-between border-b border-line p-4">
-        <h2 id="drawer-title" className="text-sm font-bold tracking-widest uppercase">
-          Protocolos
-        </h2>
+        <div>
+          <h2 id="drawer-title" className="text-sm font-bold tracking-widest uppercase">
+            Protocolos
+          </h2>
+          <p className="mt-1 text-xs text-muted">
+            {doneCount}/{PROTOCOLS.length} completados
+          </p>
+          <div aria-hidden className="mt-1.5 h-1 w-40 overflow-hidden rounded-full bg-panel-2">
+            <div className="h-full rounded-full bg-accent" style={{ width: `${(doneCount / PROTOCOLS.length) * 100}%` }} />
+          </div>
+        </div>
         <Button variant="ghost" size="icon" label="Cerrar lista de protocolos" shortcut="Esc" onClick={onClose}>
           <X aria-hidden className="size-5" />
         </Button>
@@ -68,7 +80,12 @@ export function ProtocolDrawer({ open, layer, currentId, onClose, onSelect, onLa
                     onClick={() => onSelect(p.id)}
                     className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 text-left transition-colors duration-150 hover:bg-panel-2 hover:pl-4 aria-[current]:bg-accent aria-[current]:text-accent-fg"
                   >
-                    <span className="font-bold">{p.name}</span>
+                    <span className="flex items-center gap-2 font-bold">
+                      {p.name}
+                      {isDone(progress, p.id, QUIZ[p.id]?.length ?? 0) && (
+                        <CircleCheck aria-label="completado" className="size-4 text-green-700 aria-[current]:text-current dark:text-green-400" />
+                      )}
+                    </span>
                     <span className="truncate text-xs opacity-80">{p.full}</span>
                   </button>
                 </li>

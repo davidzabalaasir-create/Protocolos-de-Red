@@ -11,6 +11,10 @@ export type NodeId =
   | 'web'
   | 'mail'
   | 'ssh'
+  | 'ntp'
+  | 'vpn'
+  | 'isp'
+  | 'transit'
 
 export type NodeKind = 'laptop' | 'router' | 'switch' | 'printer' | 'cloud' | 'server'
 
@@ -36,6 +40,10 @@ export const NODES: Record<NodeId, NetNode> = {
   root: { id: 'root', label: 'Servidor raíz', addr: '198.41.0.4', kind: 'server', x: 830, y: 40 },
   tld: { id: 'tld', label: 'TLD .com', addr: '192.5.6.30', kind: 'server', x: 830, y: 150 },
   auth: { id: 'auth', label: 'Autoritativo', addr: '198.51.100.53', kind: 'server', x: 830, y: 260 },
+  ntp: { id: 'ntp', label: 'Servidor NTP', addr: '192.0.2.123', kind: 'server', x: 450, y: 60 },
+  vpn: { id: 'vpn', label: 'Servidor VPN', addr: '198.51.100.77', kind: 'server', x: 650, y: 520 },
+  isp: { id: 'isp', label: 'Router del ISP', addr: '192.0.2.1 · AS 64500', kind: 'router', x: 200, y: 560 },
+  transit: { id: 'transit', label: 'Router de tránsito', addr: '192.0.2.2 · AS 64510', kind: 'router', x: 480, y: 560 },
 }
 
 /** Physical links of the diagram; packets travel along the shortest path. */
@@ -51,6 +59,9 @@ export const LINKS: [NodeId, NodeId][] = [
   ['dns', 'root'],
   ['dns', 'tld'],
   ['dns', 'auth'],
+  ['internet', 'ntp'],
+  ['internet', 'vpn'],
+  ['isp', 'transit'],
 ]
 
 export type PacketKind = 'dns' | 'tcp' | 'udp' | 'tls' | 'req' | 'res' | 'ctrl' | 'err'
@@ -97,10 +108,10 @@ export const OSI_LAYERS: Record<number, string> = {
   7: 'Aplicación',
 }
 
-const tcpHandshake = (to: NodeId, port: number, t0: number): Packet[] => [
-  { t: t0, from: 'client', to, proto: 'TCP', info: `52344 → ${port} [SYN] Seq=0`, size: '66 B', kind: 'tcp', note: 'El cliente pide abrir una conexión y propone su número de secuencia inicial.' },
-  { t: t0 + 0.017, from: to, to: 'client', proto: 'TCP', info: `${port} → 52344 [SYN, ACK] Seq=0 Ack=1`, size: '66 B', kind: 'tcp', note: 'El servidor acepta, confirma la secuencia del cliente y envía la suya.' },
-  { t: t0 + 0.034, from: 'client', to, proto: 'TCP', info: `52344 → ${port} [ACK] Seq=1 Ack=1`, size: '60 B', kind: 'tcp', note: 'El cliente confirma: la conexión queda establecida (saludo de tres vías).' },
+const tcpHandshake = (to: NodeId, port: number, t0: number, from: NodeId = 'client', cport = 52344): Packet[] => [
+  { t: t0, from, to, proto: 'TCP', info: `${cport} → ${port} [SYN] Seq=0`, size: '66 B', kind: 'tcp', note: 'El cliente pide abrir una conexión y propone su número de secuencia inicial.' },
+  { t: t0 + 0.017, from: to, to: from, proto: 'TCP', info: `${port} → ${cport} [SYN, ACK] Seq=0 Ack=1`, size: '66 B', kind: 'tcp', note: 'El servidor acepta, confirma la secuencia del cliente y envía la suya.' },
+  { t: t0 + 0.034, from, to, proto: 'TCP', info: `${cport} → ${port} [ACK] Seq=1 Ack=1`, size: '60 B', kind: 'tcp', note: 'El cliente confirma: la conexión queda establecida (saludo de tres vías).' },
 ]
 
 export const PROTOCOLS: Protocol[] = [
@@ -337,6 +348,151 @@ export const PROTOCOLS: Protocol[] = [
       { t: 0.078, from: 'client', to: 'mail', proto: 'SMTP', info: 'RCPT TO:<ana@ejemplo.org>', size: '88 B', kind: 'req', note: 'Indica el destinatario; puede repetirse para varios.' },
       { t: 0.096, from: 'client', to: 'mail', proto: 'SMTP', info: 'DATA … mensaje … .', size: '3.4 KB', kind: 'req', note: 'Envía cabeceras y cuerpo, terminando con una línea que solo contiene un punto.' },
       { t: 0.115, from: 'mail', to: 'client', proto: 'SMTP', info: '250 OK: en cola como 4F2A9', size: '84 B', kind: 'res', note: 'El servidor acepta el mensaje y lo pone en cola para entregarlo.' },
+    ],
+  },
+  {
+    id: 'websocket',
+    name: 'WebSocket',
+    full: 'Canal bidireccional sobre HTTP',
+    layer: 7,
+    description:
+      'WebSocket convierte una conexión HTTP en un canal permanente en ambos sentidos. El navegador pide una «actualización» (Upgrade) y, tras el 101, cliente y servidor se envían marcos pequeños en cualquier momento: ideal para chats, juegos y paneles en tiempo real.',
+    facts: [
+      ['Capa', 'Aplicación (capa 7)'],
+      ['Puerto', '80 (ws) / 443 (wss)'],
+      ['Transporte', 'TCP'],
+      ['Arranque', 'GET con Upgrade: websocket'],
+      ['Unidad', 'Marcos (texto, binario, ping, close)'],
+      ['Especificación', 'RFC 6455'],
+    ],
+    packets: [
+      ...tcpHandshake('web', 80, 0),
+      { t: 0.036, from: 'client', to: 'web', proto: 'WebSocket', info: 'GET /chat HTTP/1.1 Upgrade: websocket', size: '412 B', kind: 'req', note: 'El navegador pide cambiar de protocolo e incluye una clave aleatoria (Sec-WebSocket-Key).' },
+      { t: 0.053, from: 'web', to: 'client', proto: 'WebSocket', info: 'HTTP/1.1 101 Switching Protocols', size: '183 B', kind: 'res', note: 'El servidor acepta y devuelve un hash de esa clave: desde aquí ya no se habla HTTP.' },
+      { t: 0.31, from: 'client', to: 'web', proto: 'WebSocket', info: 'Marco de texto (enmascarado): "hola"', size: '70 B', kind: 'req', note: 'Los marcos del cliente van enmascarados con 4 bytes aleatorios.' },
+      { t: 0.33, from: 'web', to: 'client', proto: 'WebSocket', info: 'Marco de texto: "¡bienvenido!"', size: '79 B', kind: 'res', note: 'El servidor puede escribir cuando quiera, sin esperar una petición.' },
+      { t: 30.0, from: 'web', to: 'client', proto: 'WebSocket', info: 'Marco Ping', size: '62 B', kind: 'ctrl', note: 'Un ping periódico comprueba que la conexión sigue viva.' },
+      { t: 30.017, from: 'client', to: 'web', proto: 'WebSocket', info: 'Marco Pong', size: '66 B', kind: 'ctrl', note: 'El cliente contesta con un pong idéntico.' },
+    ],
+  },
+  {
+    id: 'http3',
+    name: 'HTTP/3',
+    full: 'HTTP sobre QUIC',
+    layer: 7,
+    description:
+      'HTTP/3 viaja sobre QUIC, un transporte cifrado construido encima de UDP. QUIC fusiona el saludo de transporte y el de TLS 1.3 en un solo viaje de ida y vuelta, y multiplexa flujos independientes: perder un paquete no bloquea a los demás.',
+    facts: [
+      ['Capa', 'Aplicación (capa 7)'],
+      ['Puerto', '443/UDP'],
+      ['Transporte', 'QUIC sobre UDP'],
+      ['Cifrado', 'TLS 1.3 integrado'],
+      ['Ventaja', '1-RTT, sin bloqueo de cabeza de línea'],
+      ['Especificación', 'RFC 9000, RFC 9114'],
+    ],
+    packets: [
+      { t: 0, from: 'client', to: 'web', proto: 'QUIC', info: 'Initial: CRYPTO (Client Hello)', size: '1.25 KB', kind: 'tls', note: 'El primer paquete ya lleva el Client Hello de TLS, relleno hasta 1200 bytes para evitar amplificación.' },
+      { t: 0.018, from: 'web', to: 'client', proto: 'QUIC', info: 'Initial + Handshake: Server Hello, Certificate', size: '1.25 KB', kind: 'tls', note: 'El servidor responde con su parte del saludo y el certificado, todo en un solo vuelo.' },
+      { t: 0.02, from: 'client', to: 'web', proto: 'QUIC', info: 'Handshake: Finished', size: '90 B', kind: 'tls', note: 'Un único viaje de ida y vuelta y la conexión está lista y cifrada.' },
+      { t: 0.021, from: 'client', to: 'web', proto: 'HTTP/3', info: '1-RTT STREAM 0: HEADERS GET /', size: '96 B', kind: 'req', note: 'La petición va en el flujo 0, con cabeceras comprimidas mediante QPACK.' },
+      { t: 0.04, from: 'web', to: 'client', proto: 'HTTP/3', info: '1-RTT STREAM 0: HEADERS 200, DATA', size: '12.9 KB', kind: 'res', note: 'La respuesta llega en el mismo flujo; otros flujos avanzan en paralelo.' },
+      { t: 0.042, from: 'client', to: 'web', proto: 'QUIC', info: '1-RTT ACK', size: '45 B', kind: 'udp', note: 'QUIC hace sus propias confirmaciones, ya que UDP no las tiene.' },
+    ],
+  },
+  {
+    id: 'ntp',
+    name: 'NTP',
+    full: 'Protocolo de tiempo de red',
+    layer: 7,
+    description:
+      'NTP sincroniza los relojes de los equipos. El cliente anota cuándo envía la petición y cuándo llega la respuesta; el servidor anota cuándo la recibe y cuándo contesta. Con esas cuatro marcas calcula el retardo y el desfase de su reloj.',
+    facts: [
+      ['Capa', 'Aplicación (capa 7)'],
+      ['Puerto', '123'],
+      ['Transporte', 'UDP'],
+      ['Mensaje', '48 bytes, 4 marcas de tiempo'],
+      ['Precisión', 'Milisegundos en Internet'],
+      ['Especificación', 'RFC 5905'],
+    ],
+    packets: [
+      { t: 0, from: 'client', to: 'ntp', proto: 'NTP', info: 'Petición v4, modo cliente (T1)', size: '90 B', kind: 'req', note: 'El cliente envía la hora de salida T1.' },
+      { t: 0.024, from: 'ntp', to: 'client', proto: 'NTP', info: 'Respuesta v4, modo servidor, estrato 2 (T2, T3)', size: '90 B', kind: 'res', note: 'El servidor añade T2 (llegada) y T3 (salida). El cliente anota T4 y calcula el desfase.' },
+      { t: 64, from: 'client', to: 'ntp', proto: 'NTP', info: 'Petición v4, modo cliente (T1)', size: '90 B', kind: 'req', note: 'Cada 64 s (o más) repite la consulta para corregir la deriva del reloj.' },
+      { t: 64.023, from: 'ntp', to: 'client', proto: 'NTP', info: 'Respuesta v4, modo servidor, estrato 2 (T2, T3)', size: '90 B', kind: 'res', note: 'Nuevas marcas: el reloj se ajusta suavemente, sin saltos.' },
+    ],
+  },
+  {
+    id: 'imap',
+    name: 'IMAP',
+    full: 'Protocolo de acceso a mensajes de Internet',
+    layer: 7,
+    description:
+      'IMAP permite leer el correo que se queda guardado en el servidor, sincronizado entre todos tus dispositivos. Cada orden del cliente lleva una etiqueta (a1, a2…) y el servidor responde con líneas de datos y un resultado OK, NO o BAD con la misma etiqueta.',
+    facts: [
+      ['Capa', 'Aplicación (capa 7)'],
+      ['Puerto', '143 (993 con TLS)'],
+      ['Transporte', 'TCP'],
+      ['Formato', 'Órdenes de texto con etiqueta'],
+      ['Frente a POP3', 'El correo se queda en el servidor'],
+      ['Especificación', 'RFC 9051'],
+    ],
+    packets: [
+      ...tcpHandshake('mail', 143, 0),
+      { t: 0.04, from: 'mail', to: 'client', proto: 'IMAP', info: '* OK IMAP4rev2 listo', size: '84 B', kind: 'res', note: 'Saludo inicial sin etiqueta (*).' },
+      { t: 0.042, from: 'client', to: 'mail', proto: 'IMAP', info: 'a1 LOGIN david ********', size: '86 B', kind: 'req', note: 'El cliente se autentica (en la práctica, siempre dentro de TLS).' },
+      { t: 0.06, from: 'mail', to: 'client', proto: 'IMAP', info: 'a1 OK LOGIN completado', size: '78 B', kind: 'res', note: 'La etiqueta a1 indica a qué orden responde.' },
+      { t: 0.062, from: 'client', to: 'mail', proto: 'IMAP', info: 'a2 SELECT INBOX', size: '72 B', kind: 'req', note: 'Abre la bandeja de entrada.' },
+      { t: 0.08, from: 'mail', to: 'client', proto: 'IMAP', info: '* 12 EXISTS · a2 OK [READ-WRITE]', size: '210 B', kind: 'res', note: 'Hay 12 mensajes; el buzón se abre en modo lectura y escritura.' },
+      { t: 0.082, from: 'client', to: 'mail', proto: 'IMAP', info: 'a3 FETCH 12 BODY[]', size: '74 B', kind: 'req', note: 'Pide el mensaje número 12 completo.' },
+      { t: 0.101, from: 'mail', to: 'client', proto: 'IMAP', info: '* 12 FETCH (BODY[] {3412}) · a3 OK', size: '3.5 KB', kind: 'res', note: 'Llega el mensaje con su tamaño exacto entre llaves.' },
+    ],
+  },
+  {
+    id: 'bgp',
+    name: 'BGP',
+    full: 'Protocolo de pasarela de frontera',
+    layer: 7,
+    description:
+      'BGP es el sistema postal entre redes: cada sistema autónomo (AS) anuncia a sus vecinos qué bloques de direcciones puede alcanzar y por qué camino. Así se construye el mapa de rutas de todo Internet.',
+    facts: [
+      ['Capa', 'Aplicación (capa 7)'],
+      ['Puerto', '179'],
+      ['Transporte', 'TCP'],
+      ['Mensajes', 'OPEN, UPDATE, KEEPALIVE, NOTIFICATION'],
+      ['Decisión', 'Por políticas y AS_PATH'],
+      ['Especificación', 'RFC 4271'],
+    ],
+    packets: [
+      ...tcpHandshake('transit', 179, 0, 'isp', 40112),
+      { t: 0.04, from: 'isp', to: 'transit', proto: 'BGP', info: 'OPEN AS 64500, Hold 90 s', size: '119 B', kind: 'req', note: 'Cada router se presenta con su número de AS y el tiempo de espera.' },
+      { t: 0.041, from: 'transit', to: 'isp', proto: 'BGP', info: 'OPEN AS 64510, Hold 90 s', size: '119 B', kind: 'res', note: 'El vecino hace lo mismo.' },
+      { t: 0.058, from: 'isp', to: 'transit', proto: 'BGP', info: 'KEEPALIVE', size: '73 B', kind: 'ctrl', note: 'Un KEEPALIVE confirma el OPEN: la sesión pasa a Established.' },
+      { t: 0.06, from: 'isp', to: 'transit', proto: 'BGP', info: 'UPDATE 203.0.113.0/24 AS_PATH 64500', size: '102 B', kind: 'req', note: 'El ISP anuncia que puede alcanzar la red 203.0.113.0/24.' },
+      { t: 0.08, from: 'transit', to: 'isp', proto: 'BGP', info: 'UPDATE 0.0.0.0/0 AS_PATH 64510', size: '98 B', kind: 'res', note: 'El tránsito ofrece una ruta por defecto hacia el resto de Internet.' },
+      { t: 30.0, from: 'transit', to: 'isp', proto: 'BGP', info: 'KEEPALIVE', size: '73 B', kind: 'ctrl', note: 'Cada 30 s se envía un KEEPALIVE; si faltan 90 s, la sesión cae.' },
+    ],
+  },
+  {
+    id: 'wireguard',
+    name: 'WireGuard',
+    full: 'Túnel VPN moderno',
+    layer: 3,
+    description:
+      'WireGuard crea un túnel cifrado entre dos equipos. Un saludo de solo dos mensajes acuerda claves con Curve25519; después, cada paquete IP original viaja cifrado dentro de un datagrama UDP. Si no hay tráfico, no envía nada.',
+    facts: [
+      ['Capa', 'Red (túnel de capa 3)'],
+      ['Puerto', '51820/UDP (configurable)'],
+      ['Transporte', 'UDP'],
+      ['Criptografía', 'Curve25519, ChaCha20-Poly1305'],
+      ['Saludo', '1 viaje de ida y vuelta'],
+      ['Código', '~4 000 líneas en el kernel'],
+    ],
+    packets: [
+      { t: 0, from: 'client', to: 'vpn', proto: 'WireGuard', info: 'Handshake Initiation, sender=0x5a1c', size: '190 B', kind: 'tls', note: 'El cliente envía su clave efímera y su identidad cifrada.' },
+      { t: 0.021, from: 'vpn', to: 'client', proto: 'WireGuard', info: 'Handshake Response, receiver=0x5a1c', size: '134 B', kind: 'tls', note: 'El servidor responde; ambos derivan las mismas claves de sesión.' },
+      { t: 0.022, from: 'client', to: 'vpn', proto: 'WireGuard', info: 'Transport Data, counter=0', size: '138 B', kind: 'req', note: 'Un paquete IP del cliente viaja cifrado dentro del túnel.' },
+      { t: 0.043, from: 'vpn', to: 'client', proto: 'WireGuard', info: 'Transport Data, counter=0', size: '1.4 KB', kind: 'res', note: 'La respuesta vuelve por el túnel; el contador impide repeticiones.' },
+      { t: 25.0, from: 'client', to: 'vpn', proto: 'WireGuard', info: 'Keepalive (vacío)', size: '74 B', kind: 'ctrl', note: 'Un keepalive opcional mantiene abierta la ruta a través del NAT.' },
     ],
   },
 ]
