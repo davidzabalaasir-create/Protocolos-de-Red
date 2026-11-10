@@ -1,6 +1,6 @@
 # Protocolos de Red
 
-Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de **45 protocolos** paso a paso, en un diagrama de red, un diagrama de secuencia y una tabla tipo Wireshark, con **cada paquete decodificado byte a byte**.
+Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de **53 protocolos** paso a paso, en un diagrama de red, un diagrama de secuencia y una tabla tipo Wireshark, con **cada paquete decodificado byte a byte**.
 
 **🌐 En vivo: https://protocolos-de-red-eight.vercel.app**
 
@@ -10,12 +10,12 @@ Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de *
 
 | Capa | Protocolos |
 |---|---|
-| 7 · Aplicación | HTTP, HTTPS, HTTP/3 (QUIC), WebSocket, WebRTC, SIP, RTSP, RTMP, DNS, DoH, DNSSEC, DHCP, NTP, SMTP, POP3, IMAP, FTP, SMB, SSH, Proxy HTTP, Modbus/TCP, MQTT, SNMP, LDAP, BGP, Portal cautivo |
+| 7 · Aplicación | HTTP, HTTPS, HTTP/2, HTTP/3 (QUIC), WebSocket, WebRTC, SIP, RTSP, RTMP, DNS, DoH, DNSSEC, DHCP, NTP, SMTP, POP3, IMAP, FTP, TFTP, SMB, SSH, Telnet, Kerberos, Proxy HTTP, Modbus/TCP, MQTT, CoAP, SNMP, LDAP, BGP, Portal cautivo |
 | 6 · Presentación | TLS 1.3 |
 | 5 · Sesión | SOCKS5 |
 | 4 · Transporte | TCP, UDP |
-| 3 · Red | IPv4, IPv6, ICMP, IGMP (multicast), IPsec, OSPF, WireGuard |
-| 2 · Enlace | Ethernet y switches, ARP, VLAN 802.1Q, STP, PPPoE, Wi-Fi (802.11), WPA3, 802.1X / RADIUS |
+| 3 · Red | IPv4, IPv6, ICMP, Traceroute, NAT, IGMP (multicast), IPsec, OSPF, WireGuard |
+| 2 · Enlace | Ethernet y switches, ARP, VLAN 802.1Q, STP, PPPoE, Wi-Fi (802.11), WPA3, 802.1X / RADIUS, Bluetooth LE |
 
 ## Funciones
 
@@ -27,8 +27,12 @@ Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de *
   - *Resumen*: descripción, capa, puerto, transporte y RFC.
   - *Inspector*: cada paquete construido byte a byte (Ethernet, 802.11, 802.1Q, IPv4 con fragmentación, IPv6/ICMPv6, TCP/UDP/ICMP/ARP y la carga de cada protocolo: DNS, DHCP, STUN, RTP, SMB2, Modbus, MQTT, SNMP, LDAP, RADIUS, IKEv2, ESP, OSPF, IGMP, PPPoE, EAPOL, STP…), con longitudes y checksums IPv4/IPv6/TCP/UDP/ICMP/IGMP calculados de verdad. Al pasar por un campo se resaltan sus bytes en el volcado hexadecimal.
   - *Quiz*: preguntas con explicación para cada protocolo.
-- **Progreso guardado**: una lección cuenta como completada al verla entera y acertar su quiz; el panel de protocolos muestra el avance (n/45).
+- **Progreso guardado**: una lección cuenta como completada al verla entera y acertar su quiz; el panel de protocolos muestra el avance (n/53).
 - **Flujo de paquetes**: reproducir/pausa, paso a paso, retroceder, reiniciar, velocidad 0.5×–2×, barra de progreso, botón para inspeccionar cada paquete y atajos (`Espacio`, `←`/`→`, `R`).
+- **Descarga en `.pcapng`**: cada lección se descarga como captura real que se abre en Wireshark (Ethernet, 802.11 y Bluetooth LE).
+- **Recorrido guiado** de 15 lecciones, de Ethernet a HTTP/3.
+- **Español e inglés**: botón ES/EN en la cabecera; se recuerda entre visitas y se elige solo según el idioma del navegador.
+- **Instalable** como app en el móvil, con imagen para compartir en redes.
 - Enlaces directos por protocolo: `/#dns`, `/#tcp`, etc.
 
 ## Desarrollo
@@ -37,6 +41,7 @@ Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de *
 npm install
 npm run dev
 npm run build
+npm test      # 934 pruebas: decodificación, checksums, rutas, pcapng y traducciones
 ```
 
 Stack: Vite, React 19, TypeScript, Tailwind CSS v4 y Lucide React. Sin scripts de terceros ni analítica.
@@ -58,4 +63,4 @@ Stack: Vite, React 19, TypeScript, Tailwind CSS v4 y Lucide React. Sin scripts d
 | 4.1.2 Nombre, rol, valor | `aria-pressed` en el tema, `aria-current` en capa/protocolo/paquete, `role="tablist"`, `combobox` + `listbox` en la búsqueda, `<dialog>` nativo con foco atrapado y cierre con Esc. |
 | 4.1.3 Mensajes de estado | Región `aria-live` anuncia cada paquete y su explicación. |
 
-Pendiente menor: en tema claro, los colores amarillo y azul de las flechas del diagrama tienen poco contraste sobre blanco; la información también está en texto, pero podrían oscurecerse para ese tema.
+Los colores de cada tipo de paquete usan tonos más oscuros en el tema claro, con contraste ≥ 4,5:1 sobre el fondo.

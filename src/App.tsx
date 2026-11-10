@@ -7,6 +7,7 @@ import { Stage } from './components/Stage'
 import { Toolbar } from './components/Toolbar'
 import { TourBar } from './components/TourBar'
 import { PROTOCOLS } from './data/protocols'
+import { localize, useLang, useT } from './i18n'
 import { QUIZ } from './data/quiz'
 import { isDone, useProgress } from './lib/progress'
 
@@ -24,7 +25,9 @@ export default function App() {
   const [tab, setTab] = useState<PanelTab>('overview')
   const { progress, markWatched, setQuizScore } = useProgress()
 
-  const protocol = PROTOCOLS.find((p) => p.id === protocolId) ?? PROTOCOLS[0]
+  const t = useT()
+  const lang = useLang()
+  const protocol = localize(PROTOCOLS.find((p) => p.id === protocolId) ?? PROTOCOLS[0], lang)
   const last = protocol.packets.length - 1
 
   useEffect(() => {
@@ -39,7 +42,8 @@ export default function App() {
   useEffect(() => {
     history.replaceState(null, '', `#${protocol.id}`)
     document.title = `${protocol.name} · Protocolos de Red`
-  }, [protocol.id, protocol.name])
+    document.documentElement.lang = lang
+  }, [protocol.id, protocol.name, lang])
 
   // a lesson counts as watched once its last packet is reached
   useEffect(() => {
@@ -112,7 +116,7 @@ export default function App() {
         href="#main"
         className="sr-only z-50 rounded-md bg-accent px-4 py-2 text-accent-fg focus:not-sr-only focus:absolute focus:top-2 focus:left-2"
       >
-        Saltar al contenido
+        {t('Saltar al contenido')}
       </a>
       <Header theme={theme} onTheme={setTheme} onOpenMenu={openMenu} />
       <Toolbar
@@ -150,7 +154,7 @@ export default function App() {
       </main>
 
       <footer className="border-t border-line px-4 py-4 text-center text-xs text-muted">
-        Diseñado por{' '}<a href="https://github.com/davidzabalaasir-create" target="_blank" rel="noopener noreferrer" className="font-bold text-fg underline">David</a> · Inspirado en Protocol Explorer · Hecho con React y Tailwind CSS
+        {t('Diseñado por')}{' '}<a href="https://github.com/davidzabalaasir-create" target="_blank" rel="noopener noreferrer" className="font-bold text-fg underline">David</a> · {t('Inspirado en Protocol Explorer · Hecho con React y Tailwind CSS')}
       </footer>
 
       <ProtocolDrawer

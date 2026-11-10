@@ -1,7 +1,9 @@
 import { memo } from 'react'
+import { useT } from '../i18n'
 import type { Protocol } from '../data/protocols'
 
 export const Overview = memo(function Overview({ protocol, done }: { protocol: Protocol; done: boolean }) {
+  const t = useT()
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex items-center justify-between gap-2">
@@ -12,7 +14,7 @@ export const Overview = memo(function Overview({ protocol, done }: { protocol: P
           }`}
         >
           <span aria-hidden className="size-2 rounded-full bg-current" />
-          {done ? 'Completado' : 'Activo'}
+          {done ? t('Completado') : t('Activo')}
         </span>
       </div>
       <p className="font-bold">{protocol.full}</p>

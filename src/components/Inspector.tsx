@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react'
+import { fieldText, useLang, useT } from '../i18n'
 import { memo, useMemo, useState } from 'react'
 import type { Packet } from '../data/protocols'
 import { decodePacket, type Field } from '../lib/decode'
@@ -12,6 +13,8 @@ interface Props {
 
 /** Byte-by-byte decode of the current packet: layer tree on top, linked hex dump below. */
 export const Inspector = memo(function Inspector({ packet, index }: Props) {
+  const t = useT()
+  const lang = useLang()
   const frame = useMemo(() => (packet ? decodePacket(packet) : null), [packet])
   const [hover, setHover] = useState<{ start: number; len: number } | null>(null)
   const [closed, setClosed] = useState<Set<string>>(new Set(['eth']))
@@ -20,7 +23,7 @@ export const Inspector = memo(function Inspector({ packet, index }: Props) {
     return (
       <div className="grid flex-1 place-items-center p-6 text-center text-sm text-muted">
         <p>
-          Pulsa <strong className="text-fg">Paso</strong> o elige un paquete de la tabla para ver cada byte decodificado.
+          {t('Pulsa')} <strong className="text-fg">{t('Paso')}</strong> {t('o elige un paquete de la tabla para ver cada byte decodificado.')}
         </p>
       </div>
     )
@@ -50,7 +53,7 @@ export const Inspector = memo(function Inspector({ packet, index }: Props) {
   return (
     <div className="flex flex-col gap-3 p-4 text-xs">
       <p className="text-sm">
-        <strong>Paquete {index + 1}</strong> · {packet.proto} · <span className="text-muted">{total + frame.truncated} bytes</span>
+        <strong>{t('Paquete {n}', { n: index + 1 })}</strong> · {packet.proto} · <span className="text-muted">{total + frame.truncated} bytes</span>
       </p>
 
       {/* encapsulation bar */}
@@ -60,7 +63,7 @@ export const Inspector = memo(function Inspector({ packet, index }: Props) {
         ))}
       </div>
       <p className="sr-only">
-        Encapsulación: {frame.layers.map((l) => `${l.name} ${l.len} bytes`).join(', ')}.
+        {t('Encapsulación:')} {frame.layers.map((l) => `${fieldText(lang, l.name)} ${l.len} bytes`).join(', ')}.
       </p>
 
       <ul className="flex flex-col gap-1.5">
@@ -77,7 +80,7 @@ export const Inspector = memo(function Inspector({ packet, index }: Props) {
                 className="flex min-h-10 w-full items-center gap-2 bg-panel-2 px-3 text-left font-bold hover:brightness-110"
               >
                 <span aria-hidden className="size-2.5 shrink-0 rounded-sm" style={{ background: l.color }} />
-                <span className="flex-1">{l.name}</span>
+                <span className="flex-1">{fieldText(lang, l.name)}</span>
                 <span className="font-normal text-muted">{l.len} B</span>
                 <ChevronDown aria-hidden className={`size-4 ${open ? 'rotate-180' : ''}`} />
               </button>
@@ -90,8 +93,8 @@ export const Inspector = memo(function Inspector({ packet, index }: Props) {
                       {...fieldProps(f)}
                       className="grid cursor-default grid-cols-[minmax(7rem,40%)_1fr] gap-2 px-3 py-1.5 outline-none hover:bg-panel-2 focus-visible:bg-panel-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
                     >
-                      <dt className="text-muted">{f.name}</dt>
-                      <dd className="break-words">{f.value}</dd>
+                      <dt className="text-muted">{fieldText(lang, f.name)}</dt>
+                      <dd className="break-words">{fieldText(lang, f.value)}</dd>
                     </div>
                   ))}
                 </dl>
@@ -102,7 +105,7 @@ export const Inspector = memo(function Inspector({ packet, index }: Props) {
       </ul>
 
       <figure>
-        <figcaption className="mb-1 text-[11px] font-bold tracking-widest text-muted uppercase">Bytes en el cable</figcaption>
+        <figcaption className="mb-1 text-[11px] font-bold tracking-widest text-muted uppercase">{t('Bytes en el cable')}</figcaption>
         <div aria-hidden className="overflow-x-auto rounded-md border border-line bg-bg p-2 leading-5 tabular-nums">
           {rows.map((r, ri) => (
             <div key={ri} className="flex gap-3 whitespace-pre">
@@ -134,9 +137,9 @@ export const Inspector = memo(function Inspector({ packet, index }: Props) {
               </span>
             </div>
           ))}
-          {frame.truncated > 0 && <p className="mt-1 text-muted">… {frame.truncated} bytes más</p>}
+          {frame.truncated > 0 && <p className="mt-1 text-muted">{t('… {n} bytes más', { n: frame.truncated })}</p>}
         </div>
-        <p className="mt-1 text-[11px] text-muted">Pasa el ratón o el foco por un campo para resaltar sus bytes.</p>
+        <p className="mt-1 text-[11px] text-muted">{t('Pasa el ratón o el foco por un campo para resaltar sus bytes.')}</p>
       </figure>
     </div>
   )

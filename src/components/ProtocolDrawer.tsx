@@ -1,4 +1,5 @@
 import { CircleCheck, Route, X } from 'lucide-react'
+import { displayName, fullName, useLang, useT } from '../i18n'
 import { useEffect, useRef } from 'react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
 import { QUIZ } from '../data/quiz'
@@ -18,6 +19,8 @@ interface Props {
 
 /** Side panel listing protocols, grouped by OSI layer. Native <dialog> gives focus trapping and Escape. */
 export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSelect, onLayer }: Props) {
+  const t = useT()
+  const lang = useLang()
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -41,16 +44,16 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
       <div className="flex items-center justify-between border-b border-line p-4">
         <div>
           <h2 id="drawer-title" className="text-sm font-bold tracking-widest uppercase">
-            Protocolos
+            {t('Protocolos')}
           </h2>
           <p className="mt-1 text-xs text-muted">
-            {doneCount}/{PROTOCOLS.length} completados
+            {t('{done}/{total} completados', { done: doneCount, total: PROTOCOLS.length })}
           </p>
           <div aria-hidden className="mt-1.5 h-1 w-40 overflow-hidden rounded-full bg-panel-2">
             <div className="h-full rounded-full bg-accent" style={{ width: `${(doneCount / PROTOCOLS.length) * 100}%` }} />
           </div>
         </div>
-        <Button variant="ghost" size="icon" label="Cerrar lista de protocolos" shortcut="Esc" onClick={onClose}>
+        <Button variant="ghost" size="icon" label={t('Cerrar lista de protocolos')} shortcut="Esc" onClick={onClose}>
           <X aria-hidden className="size-5" />
         </Button>
       </div>
@@ -58,10 +61,10 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
       {layer !== null && (
         <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2 text-xs">
           <span>
-            Filtrado: capa {layer} · {OSI_LAYERS[layer]}
+            {t('Filtrado: capa {l} · {name}', { l: layer, name: t(OSI_LAYERS[layer]) })}
           </span>
           <Button variant="ghost" size="sm" onClick={() => onLayer(null)}>
-            Ver todas
+            {t('Ver todas')}
           </Button>
         </div>
       )}
@@ -69,15 +72,15 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
       <div className="border-b border-line p-3">
         <Button variant="primary" className="w-full" onClick={() => onSelect(TOUR[0].id)}>
           <Route aria-hidden className="size-4" />
-          Empezar el recorrido guiado ({TOUR.length} lecciones)
+          {t('Empezar el recorrido guiado ({n} lecciones)', { n: TOUR.length })}
         </Button>
       </div>
 
-      <nav aria-label="Lista de protocolos" className="p-2">
+      <nav aria-label={t('Lista de protocolos')} className="p-2">
         {layers.map((l) => (
           <section key={l} className="mb-3">
             <h3 className="px-2 py-2 text-[11px] font-bold tracking-widest text-muted uppercase">
-              Capa {l} · {OSI_LAYERS[l]}
+              {t('Capa {l} · {name}', { l, name: t(OSI_LAYERS[l]) })}
             </h3>
             <ul>
               {PROTOCOLS.filter((p) => p.layer === l).map((p) => (
@@ -89,12 +92,12 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
                     className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 text-left hover:bg-panel-2 aria-[current]:bg-accent aria-[current]:text-accent-fg"
                   >
                     <span className="flex items-center gap-2 font-bold">
-                      {p.name}
+                      {displayName(lang, p)}
                       {isDone(progress, p.id, QUIZ[p.id]?.length ?? 0) && (
-                        <CircleCheck aria-label="completado" className="size-4 text-green-700 aria-[current]:text-current dark:text-green-400" />
+                        <CircleCheck aria-label={t('completado')} className="size-4 text-green-700 aria-[current]:text-current dark:text-green-400" />
                       )}
                     </span>
-                    <span className="truncate text-xs opacity-80">{p.full}</span>
+                    <span className="truncate text-xs opacity-80">{fullName(lang, p)}</span>
                   </button>
                 </li>
               ))}
@@ -102,7 +105,7 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
           </section>
         ))}
         {layers.length === 0 && (
-          <p className="p-3 text-sm text-muted">Todavía no hay lecciones para esta capa.</p>
+          <p className="p-3 text-sm text-muted">{t('Todavía no hay lecciones para esta capa.')}</p>
         )}
       </nav>
     </dialog>

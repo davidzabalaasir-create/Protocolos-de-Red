@@ -1,4 +1,5 @@
 import { BookOpen, Binary, GraduationCap } from 'lucide-react'
+import { useT } from '../i18n'
 import type { Protocol } from '../data/protocols'
 import { Inspector } from './Inspector'
 import { Overview } from './Overview'
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function SidePanel({ protocol, step, tab, onTab, done, bestScore, onScore }: Props) {
+  const t = useT()
   const move = (dir: number) => {
     const i = TABS.findIndex(([id]) => id === tab)
     const next = TABS[(i + dir + TABS.length) % TABS.length][0]
@@ -31,8 +33,8 @@ export function SidePanel({ protocol, step, tab, onTab, done, bestScore, onScore
   }
 
   return (
-    <aside aria-label="Panel del protocolo" className="flex flex-col overflow-hidden rounded-lg border border-line bg-panel lg:sticky lg:top-3 lg:max-h-[calc(100dvh-1.5rem)]">
-      <div role="tablist" aria-label="Secciones" className="flex gap-0.5 border-b border-line p-1.5">
+    <aside aria-label={t('Panel del protocolo')} className="flex flex-col overflow-hidden rounded-lg border border-line bg-panel lg:sticky lg:top-3 lg:max-h-[calc(100dvh-1.5rem)]">
+      <div role="tablist" aria-label={t('Secciones')} className="flex gap-0.5 border-b border-line p-1.5">
         {TABS.map(([id, label, Icon]) => (
           <button
             key={id}
@@ -50,7 +52,7 @@ export function SidePanel({ protocol, step, tab, onTab, done, bestScore, onScore
             className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-bold tracking-wider uppercase hover:bg-panel-2 aria-selected:bg-accent aria-selected:text-accent-fg"
           >
             <Icon aria-hidden className="size-4" />
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>

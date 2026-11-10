@@ -1,6 +1,7 @@
 import { Check, RotateCcw, X } from 'lucide-react'
 import { memo, useEffect, useId, useState } from 'react'
 import { QUIZ } from '../data/quiz'
+import { LESSONS_EN, useLang, useT } from '../i18n'
 import { Button } from './ui/Button'
 
 interface Props {
@@ -10,7 +11,9 @@ interface Props {
 }
 
 export const Quiz = memo(function Quiz({ protocolId, best, onScore }: Props) {
-  const questions = QUIZ[protocolId] ?? []
+  const t = useT()
+  const lang = useLang()
+  const questions = (lang === 'en' ? LESSONS_EN[protocolId]?.quiz : undefined) ?? QUIZ[protocolId] ?? []
   const [answers, setAnswers] = useState<(number | null)[]>(() => questions.map(() => null))
   const baseId = useId()
 
@@ -24,12 +27,12 @@ export const Quiz = memo(function Quiz({ protocolId, best, onScore }: Props) {
     if (finished) onScore(score)
   }, [finished, score, onScore])
 
-  if (!questions.length) return <p className="p-4 text-sm text-muted">Aún no hay preguntas para este protocolo.</p>
+  if (!questions.length) return <p className="p-4 text-sm text-muted">{t('Aún no hay preguntas para este protocolo.')}</p>
 
   return (
     <div className="flex flex-col gap-4 p-4 text-sm">
       <p className="text-muted">
-        Comprueba lo que has aprendido. {best !== undefined && <>Mejor resultado: <strong className="text-fg">{best}/{questions.length}</strong>.</>}
+        {t('Comprueba lo que has aprendido.')} {best !== undefined && <>{t('Mejor resultado:')} <strong className="text-fg">{best}/{questions.length}</strong>.</>}
       </p>
 
       {questions.map((q, qi) => {
@@ -64,8 +67,8 @@ export const Quiz = memo(function Quiz({ protocolId, best, onScore }: Props) {
                     {state === 'right' && <Check aria-hidden className="size-4 shrink-0 text-green-700 dark:text-green-400" />}
                     {state === 'wrong' && <X aria-hidden className="size-4 shrink-0 text-red-700 dark:text-red-400" />}
                     <span>{o}</span>
-                    {state === 'right' && <span className="sr-only">(correcta)</span>}
-                    {state === 'wrong' && <span className="sr-only">(incorrecta)</span>}
+                    {state === 'right' && <span className="sr-only">{t('(correcta)')}</span>}
+                    {state === 'wrong' && <span className="sr-only">{t('(incorrecta)')}</span>}
                   </button>
                 )
               })}
@@ -73,7 +76,7 @@ export const Quiz = memo(function Quiz({ protocolId, best, onScore }: Props) {
             {chosen !== null && (
               <p role="status" className="mt-2 text-xs text-muted">
                 <strong className={chosen === q.answer ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}>
-                  {chosen === q.answer ? '¡Correcto! ' : 'No exactamente. '}
+                  {chosen === q.answer ? t('¡Correcto! ') : t('No exactamente. ')}
                 </strong>
                 {q.why}
               </p>
@@ -85,11 +88,11 @@ export const Quiz = memo(function Quiz({ protocolId, best, onScore }: Props) {
       {finished && (
         <div role="status" className="flex items-center justify-between gap-3 rounded-lg border border-line bg-panel-2 p-3">
           <span>
-            Resultado: <strong>{score}/{questions.length}</strong> {score === questions.length ? '· ¡Perfecto!' : ''}
+            {t('Resultado:')} <strong>{score}/{questions.length}</strong> {score === questions.length ? t('· ¡Perfecto!') : ''}
           </span>
           <Button size="sm" onClick={() => setAnswers(questions.map(() => null))}>
             <RotateCcw aria-hidden className="size-4" />
-            Repetir
+            {t('Repetir')}
           </Button>
         </div>
       )}

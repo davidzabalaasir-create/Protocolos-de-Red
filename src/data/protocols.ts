@@ -154,6 +154,8 @@ export interface Packet {
   /** Overrides for addresses that aren't the node's own (multicast, IPv6, link-local…) */
   srcIp?: string
   dstIp?: string
+  /** Translated text for the Info column (decoders always read `info`) */
+  display?: string
   /** IPv4 TTL override (traceroute probes) */
   ttl?: number
 }

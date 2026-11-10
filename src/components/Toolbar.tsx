@@ -1,4 +1,5 @@
 import { Search } from 'lucide-react'
+import { displayName, fullName, useLang, useT } from '../i18n'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
 
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
+  const t = useT()
+  const lang = useLang()
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -17,7 +20,7 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return []
-    return PROTOCOLS.filter((p) => `${p.name} ${p.full}`.toLowerCase().includes(q))
+    return PROTOCOLS.filter((p) => `${p.name} ${p.full} ${fullName('en', p)}`.toLowerCase().includes(q))
   }, [query])
 
   // Ctrl/Cmd + K focuses search, like the original
@@ -43,7 +46,7 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
     <div className="flex flex-wrap items-end gap-4 px-3 py-3 sm:px-4">
       <div className="relative min-w-60 flex-1">
         <label htmlFor="search" className="sr-only">
-          Buscar protocolos
+          {t('Buscar protocolos')}
         </label>
         <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
         <input
@@ -55,7 +58,7 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={results[active] ? `${listId}-${results[active].id}` : undefined}
-          placeholder="Buscar protocolos"
+          placeholder={t('Buscar protocolos')}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -83,10 +86,10 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
           <ul
             id={listId}
             role="listbox"
-            aria-label="Resultados"
+            aria-label={t('Resultados')}
             className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-line bg-panel shadow-xl"
           >
-            {results.length === 0 && <li className="p-3 text-sm text-muted">Sin resultados</li>}
+            {results.length === 0 && <li className="p-3 text-sm text-muted">{t('Sin resultados')}</li>}
             {results.map((p, i) => (
               <li
                 key={p.id}
@@ -97,8 +100,8 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
                 onClick={() => choose(p.id)}
                 className="flex min-h-11 cursor-pointer items-center gap-3 px-3 text-sm aria-selected:bg-accent aria-selected:text-accent-fg"
               >
-                <strong>{p.name}</strong>
-                <span className="truncate opacity-80">{p.full}</span>
+                <strong>{displayName(lang, p)}</strong>
+                <span className="truncate opacity-80">{fullName(lang, p)}</span>
               </li>
             ))}
           </ul>
@@ -107,8 +110,8 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
 
       <fieldset className="min-w-0">
         <legend className="mb-1 flex w-full justify-between gap-6 text-[11px] font-bold tracking-widest text-muted uppercase">
-          <span>Capa OSI</span>
-          <span aria-live="polite">{OSI_LAYERS[currentLayer]}</span>
+          <span>{t('Capa OSI')}</span>
+          <span aria-live="polite">{t(OSI_LAYERS[currentLayer])}</span>
         </legend>
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5, 6, 7].map((l) => (
@@ -117,7 +120,7 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
               type="button"
               onClick={() => onLayer(l)}
               aria-current={l === currentLayer ? 'true' : undefined}
-              aria-label={`Capa ${l}, ${OSI_LAYERS[l]}: ver protocolos`}
+              aria-label={t('Capa {l}, {name}: ver protocolos', { l, name: t(OSI_LAYERS[l]) })}
               className="grid size-11 place-items-center rounded-lg border border-line-strong bg-panel text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2 aria-[current]:border-accent aria-[current]:bg-accent aria-[current]:text-accent-fg aria-[current]:shadow-[0_6px_16px_-6px_var(--accent)]"
             >
               {l}

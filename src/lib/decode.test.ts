@@ -99,3 +99,39 @@ describe('captura pcapng', () => {
     expect(packets).toBe(p.packets.length)
   })
 })
+
+describe('traducción al inglés', () => {
+  it.each(PROTOCOLS.map((p) => [p.id, p] as const))('%s está completa y alineada', async (_, p) => {
+    const { LESSONS_EN } = await import('../i18n')
+    const en = LESSONS_EN[p.id]
+    expect(en, 'falta la lección en inglés').toBeDefined()
+    expect(en.notes.length, 'notas').toBe(p.packets.length)
+    expect(en.facts.length, 'ficha').toBe(p.facts.length)
+    expect(en.quiz.length, 'quiz').toBe(QUIZ[p.id].length)
+    en.quiz.forEach((q, i) => {
+      expect(q.options.length).toBe(QUIZ[p.id][i].options.length)
+      expect(q.answer, `respuesta correcta de la pregunta ${i + 1}`).toBe(QUIZ[p.id][i].answer)
+    })
+  })
+
+  it('la interfaz no deja textos de la lista de capas o del recorrido sin traducir', async () => {
+    const { UI_EN } = await import('../i18n/ui-en')
+    const { OSI_LAYERS } = await import('../data/protocols')
+    const { TOUR } = await import('../data/tour')
+    for (const name of Object.values(OSI_LAYERS)) expect(UI_EN[name], name).toBeDefined()
+    for (const t of TOUR) expect(UI_EN[t.why], t.why).toBeDefined()
+  })
+})
+
+describe('textos de la interfaz', () => {
+  it('cada t("…") literal tiene traducción al inglés', async () => {
+    const { readFileSync, readdirSync } = await import('node:fs')
+    const { UI_EN } = await import('../i18n/ui-en')
+    const dir = new URL('../components/', import.meta.url)
+    const files = [...readdirSync(dir).filter((f) => f.endsWith('.tsx')).map((f) => new URL(f, dir)), new URL('../App.tsx', import.meta.url)]
+    const missing: string[] = []
+    for (const f of files)
+      for (const m of readFileSync(f, 'utf8').matchAll(/\bt\('((?:[^'\\]|\\.)*)'/g)) if (!(m[1] in UI_EN)) missing.push(m[1])
+    expect(missing).toEqual([])
+  })
+})

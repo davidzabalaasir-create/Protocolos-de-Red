@@ -1,4 +1,5 @@
 import { Camera, Cloud, Cpu, Laptop, Network, Phone, Printer, Router, Server, Wifi, Workflow, type LucideIcon } from 'lucide-react'
+import { nodeLabel, useLang, useT } from '../i18n'
 import { memo, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { kindColor, LINKS, NODES, addrOf, nodesFor, route, type NodeId, type NodeKind, type Packet, type Protocol } from '../data/protocols'
 
@@ -58,13 +59,15 @@ interface Props {
 }
 
 export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) {
+  const t = useT()
+  const lang = useLang()
   const [view, setView] = useState<'net' | 'seq'>('net')
   const packet = step >= 0 ? protocol.packets[step] : null
   const color = packet ? kindColor(packet.kind) : ''
 
   const summary = packet
-    ? `Paquete ${step + 1} de ${protocol.packets.length}: ${packet.proto} de ${NODES[packet.from].label} a ${NODES[packet.to].label}. ${packet.info}.`
-    : `Diagrama de red de ${protocol.name}. Pulsa Reproducir o Paso para empezar.`
+    ? t('Paquete {n} de {total}: {proto} de {from} a {to}. {info}.', { n: step + 1, total: protocol.packets.length, proto: packet.proto, from: nodeLabel(lang, packet.from, NODES[packet.from].label), to: nodeLabel(lang, packet.to, NODES[packet.to].label), info: packet.display ?? packet.info })
+    : t('Diagrama de red de {name}. Pulsa Reproducir o Paso para empezar.', { name: protocol.name })
 
   const tabs = [
     ['net', 'Red', Network],
@@ -74,9 +77,9 @@ export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) 
   return (
     <section aria-labelledby="stage-title" className="grid-bg relative flex min-h-[22rem] flex-col rounded-lg border border-line bg-panel">
       <h2 id="stage-title" className="sr-only">
-        Visualización
+        {t('Visualización')}
       </h2>
-      <div role="tablist" aria-label="Tipo de vista" className="m-3 flex w-fit gap-0.5 rounded-lg border border-line-strong bg-panel p-1 shadow-sm">
+      <div role="tablist" aria-label={t('Tipo de vista')} className="m-3 flex w-fit gap-0.5 rounded-lg border border-line-strong bg-panel p-1 shadow-sm">
         {tabs.map(([id, label, Icon]) => (
           <button
             key={id}
@@ -97,7 +100,7 @@ export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) 
             className="flex min-h-10 items-center gap-1.5 rounded-md px-3 text-xs font-bold tracking-wider uppercase hover:bg-panel-2 aria-selected:bg-accent aria-selected:text-accent-fg aria-selected:shadow-sm"
           >
             <Icon aria-hidden className="size-4" />
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
@@ -125,6 +128,7 @@ export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) 
 
 /** Static topology: only re-renders when the protocol or the highlighted route changes, never per frame. */
 const Topology = memo(function Topology({ visible, active, color }: { visible: Set<NodeId>; active: Set<NodeId>; color: string }) {
+  const lang = useLang()
   return (
     <>
       {LINKS.filter(([a, b]) => visible.has(a) && visible.has(b)).map(([a, b]) => {
@@ -151,7 +155,7 @@ const Topology = memo(function Topology({ visible, active, color }: { visible: S
             <rect x={n.x - 30} y={n.y - 30} width={60} height={60} rx={10} fill="var(--panel-2)" stroke={on ? color : 'var(--line)'} strokeWidth={on ? 2.5 : 1.5} />
             <Icon x={n.x - 16} y={n.y - 16} width={32} height={32} color="var(--fg)" strokeWidth={1.5} />
             <text x={n.x} y={n.y + 50} textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--fg)">
-              {n.label}
+              {nodeLabel(lang, n.id, n.label)}
             </text>
             {n.addr && (
               <text x={n.x} y={n.y + 68} textAnchor="middle" fontSize="13" fill="var(--muted)">
@@ -168,6 +172,7 @@ const Topology = memo(function Topology({ visible, active, color }: { visible: S
 const EMPTY = new Set<NodeId>()
 
 function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { protocol: Protocol; packet: Packet | null; step: number; durationMs: number; summary: string }) {
+  const t = useT()
   const reduced = usePrefersReducedMotion()
   const visible = nodesFor(protocol)
   const viewBox = useMemo(() => viewBoxFor(visible), [visible])
@@ -214,9 +219,9 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
         <g ref={dotRef} aria-hidden style={{ willChange: 'transform' }}>
           <circle r={14} fill={color} opacity={0.25} />
           <circle r={8} fill={color} stroke="var(--bg)" strokeWidth={2} />
-          {packet.kind === 'err' && arrived && (
+          {packet.kind === 'err' && /PERDIDO/.test(packet.info) && arrived && (
             <text y={-20} textAnchor="middle" fontSize="13" fontWeight="700" fill={color}>
-              ✕ perdido
+              {t('✕ perdido')}
             </text>
           )}
         </g>
@@ -226,6 +231,8 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
 }
 
 const SequenceDiagram = memo(function SequenceDiagram({ protocol, step, summary }: { protocol: Protocol; step: number; summary: string }) {
+  const t = useT()
+  const lang = useLang()
   const actors = useMemo(() => [...new Set(protocol.packets.flatMap((p) => [p.from, p.to]))], [protocol])
   const colW = 900 / actors.length
   const x = (id: NodeId) => colW * actors.indexOf(id) + colW / 2
@@ -233,11 +240,11 @@ const SequenceDiagram = memo(function SequenceDiagram({ protocol, step, summary 
   const h = 70 + protocol.packets.length * rowH + 20
 
   return (
-    <svg viewBox={`0 0 900 ${h}`} role="img" aria-label={`Diagrama de secuencia. ${summary}`} className="w-full">
+    <svg viewBox={`0 0 900 ${h}`} role="img" aria-label={`${t('Diagrama de secuencia.')} ${summary}`} className="w-full">
       {actors.map((id) => (
         <g key={id} aria-hidden>
           <text x={x(id)} y={22} textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--fg)">
-            {NODES[id].label}
+            {nodeLabel(lang, id, NODES[id].label)}
           </text>
           <text x={x(id)} y={40} textAnchor="middle" fontSize="12" fill="var(--muted)">
             {addrOf(id)}
@@ -257,7 +264,7 @@ const SequenceDiagram = memo(function SequenceDiagram({ protocol, step, summary 
             <line x1={x1} x2={x2 - dir * 8} y1={y} y2={y} stroke={c} strokeWidth={i === step ? 3 : 2} strokeDasharray={p.kind === 'err' ? '6 4' : undefined} />
             <polygon points={`${x2},${y} ${x2 - dir * 10},${y - 5} ${x2 - dir * 10},${y + 5}`} fill={c} />
             <text x={(x1 + x2) / 2} y={y - 7} textAnchor="middle" fontSize="12" fill={done ? 'var(--fg)' : 'var(--muted)'}>
-              {i + 1}. {p.info.length > 38 ? p.info.slice(0, 37) + '…' : p.info}
+              {i + 1}. {(p.display ?? p.info).length > 38 ? (p.display ?? p.info).slice(0, 37) + '…' : (p.display ?? p.info)}
             </text>
           </g>
         )
