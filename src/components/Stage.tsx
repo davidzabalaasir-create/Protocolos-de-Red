@@ -143,7 +143,7 @@ export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) 
 })
 
 /** Static topology: only re-renders when the protocol or the highlighted route changes, never per frame. */
-const Topology = memo(function Topology({ visible, active, color }: { visible: Set<NodeId>; active: Set<NodeId>; color: string }) {
+const Topology = memo(function Topology({ visible, revealed, links, delays, active, color }: { visible: Set<NodeId>; revealed: Set<NodeId>; links: Set<string>; delays: Map<NodeId, number>; active: Set<NodeId>; color: string }) {
   const lang = useLang()
   return (
     <>
@@ -152,6 +152,8 @@ const Topology = memo(function Topology({ visible, active, color }: { visible: S
         return (
           <line
             key={a + b}
+            className="net-lane"
+            data-hidden={links.has(a + b) || links.has(b + a) ? undefined : ''}
             x1={NODES[a].x}
             y1={NODES[a].y}
             x2={NODES[b].x}
@@ -167,7 +169,7 @@ const Topology = memo(function Topology({ visible, active, color }: { visible: S
         const Icon = ICONS[n.kind]
         const on = active.has(id)
         return (
-          <g key={id} aria-hidden>
+          <g key={id} aria-hidden className="net-node" data-hidden={revealed.has(id) ? undefined : ''} style={{ transitionDelay: `${delays.get(id) ?? 0}ms` }}>
             <rect x={n.x - 30} y={n.y - 30} width={60} height={60} rx={10} fill="var(--panel-2)" stroke={on ? color : 'var(--line)'} strokeWidth={on ? 2.5 : 1.5} />
             <Icon x={n.x - 16} y={n.y - 16} width={32} height={32} color="var(--fg)" strokeWidth={1.5} />
             <text x={n.x} y={n.y + 50} textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--fg)">
@@ -232,10 +234,33 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
   const svgRef = useRef<SVGSVGElement>(null)
   const cam = useRef<Box | null>(null)
   const camRaf = useRef(0)
-  const shownProtocol = useRef<string | null>(null)
   const aspect = full.w / full.h
-  const target = path ? fit(boxFor(path), aspect, full.w * 0.55) : full
+
+  // Like the original: only the devices the conversation has reached so far are on screen,
+  // and the camera frames them, starting with a close-up of whoever speaks first.
+  const { revealed, links, delays } = useMemo(() => {
+    const revealed = new Set<NodeId>()
+    const links = new Set<string>()
+    const delays = new Map<NodeId, number>()
+    const first = protocol.packets[0]?.from
+    if (first) revealed.add(first)
+    protocol.packets.slice(0, Math.max(step + 1, 0)).forEach((pk, i, arr) => {
+      const r = route(pk.from, pk.to)
+      r.forEach((id, k) => {
+        if (!revealed.has(id)) {
+          revealed.add(id)
+          // stagger the devices that appear with the current packet along its path
+          if (i === arr.length - 1) delays.set(id, k * 110)
+        }
+        if (k) links.add(r[k - 1] + id)
+      })
+    })
+    return { revealed, links, delays }
+  }, [protocol, step])
+  const first = protocol.packets[0]?.from
+  const target = step < 0 && first ? fit(boxFor([first]), aspect, full.w * 0.34) : fit(boxFor(revealed), aspect, full.w * 0.42)
   const targetKey = toAttr(target)
+  const shownProtocol = useRef<string | null>(null)
 
   useLayoutEffect(() => {
     const svg = svgRef.current
@@ -244,12 +269,12 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
       cam.current = b
       svg.setAttribute('viewBox', toAttr(b))
     }
-    const animate = (to: Box, ms: number, delay = 0) => {
+    const animate = (to: Box, ms: number) => {
       cancelAnimationFrame(camRaf.current)
       const from = cam.current ?? to
-      const start = performance.now() + delay
+      const start = performance.now()
       const tick = (now: number) => {
-        const k = easeInOutCubic(Math.min(Math.max((now - start) / ms, 0), 1))
+        const k = easeInOutCubic(Math.min((now - start) / ms, 1))
         set({ x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k, w: from.w + (to.w - from.w) * k, h: from.h + (to.h - from.h) * k })
         if (k < 1) camRaf.current = requestAnimationFrame(tick)
       }
@@ -258,14 +283,8 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
 
     const isNewLesson = shownProtocol.current !== protocol.id
     shownProtocol.current = protocol.id
-    if (reduced) set(target)
-    else if (isNewLesson && step < 0) {
-      // intro: start tight on whoever speaks first, like a camera pulling back
-      const first = protocol.packets[0]?.from
-      set(first ? fit(boxFor([first]), aspect, full.w * 0.34) : full)
-      animate(full, 1600, 450)
-    } else if (isNewLesson) set(target)
-    else animate(target, 750)
+    if (reduced || isNewLesson) set(target)
+    else animate(target, 1100)
     return () => cancelAnimationFrame(camRaf.current)
     // targetKey captures every change of `target`
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -273,7 +292,7 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
 
   return (
     <svg ref={svgRef} role="img" aria-label={summary} className="h-full max-h-[460px] w-full">
-      <Topology visible={visible} active={active} color={color} />
+      <Topology visible={visible} revealed={revealed} links={links} delays={delays} active={active} color={color} />
       {packet && (
         <g ref={dotRef} aria-hidden style={{ willChange: 'transform' }}>
           <circle r={14} fill={color} opacity={0.25} />
