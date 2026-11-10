@@ -70,4 +70,120 @@ export const QUIZ: Record<string, Question[]> = {
     { q: '¿Cuántos mensajes tiene el saludo de WireGuard?', options: ['2', '4', '6'], answer: 0, why: 'Initiation y Response: un solo viaje de ida y vuelta.' },
     { q: '¿Cómo viaja el tráfico del túnel?', options: ['En TCP sin cifrar', 'Cifrado dentro de datagramas UDP', 'Por ICMP'], answer: 1, why: 'Cada paquete IP va cifrado con ChaCha20-Poly1305 dentro de UDP.' },
   ],
+  webrtc: [
+    { q: '¿Para qué sirve STUN en WebRTC?', options: ['Para cifrar el vídeo', 'Para descubrir tu IP y puerto públicos', 'Para comprimir el audio'], answer: 1, why: 'STUN devuelve la dirección con la que te ve Internet, necesaria tras un NAT.' },
+    { q: '¿Por dónde viaja el vídeo cuando hay camino directo?', options: ['Por el servidor web', 'De igual a igual, cifrado con SRTP', 'Por correo'], answer: 1, why: 'El servidor solo hace la señalización; los medios van directos.' },
+  ],
+  sip: [
+    { q: '¿Qué mensaje SIP inicia una llamada?', options: ['BYE', 'INVITE', 'REGISTER'], answer: 1, why: 'INVITE invita al otro extremo e incluye la descripción SDP.' },
+    { q: '¿Por qué protocolo viaja la voz?', options: ['Por SIP', 'Por RTP', 'Por SMTP'], answer: 1, why: 'SIP negocia la llamada; el audio va aparte en paquetes RTP.' },
+  ],
+  rtsp: [
+    { q: '¿Qué orden RTSP empieza la reproducción?', options: ['PLAY', 'SETUP', 'DESCRIBE'], answer: 0, why: 'DESCRIBE describe, SETUP prepara y PLAY arranca el flujo.' },
+    { q: '¿Dónde se usa mucho RTSP?', options: ['En cámaras IP', 'En impresoras', 'En DNS'], answer: 0, why: 'Es el protocolo típico de cámaras y videovigilancia.' },
+  ],
+  rtmp: [
+    { q: '¿Para qué se usa RTMP hoy?', options: ['Para enviar un directo a la plataforma de streaming', 'Para leer correo', 'Para asignar IPs'], answer: 0, why: 'Programas como OBS lo usan para la ingesta de directos.' },
+    { q: '¿Sobre qué transporte va RTMP?', options: ['UDP', 'TCP', 'ICMP'], answer: 1, why: 'Usa una única conexión TCP al puerto 1935.' },
+  ],
+  doh: [
+    { q: '¿Qué gana DNS al ir sobre HTTPS?', options: ['Más velocidad siempre', 'Privacidad: nadie en la red ve qué dominios consultas', 'Direcciones más cortas'], answer: 1, why: 'La consulta viaja cifrada dentro de TLS.' },
+    { q: '¿Qué puerto usa DoH?', options: ['53', '443', '853'], answer: 1, why: 'El mismo que HTTPS; 853 es DNS sobre TLS (DoT).' },
+  ],
+  dnssec: [
+    { q: '¿Qué protege DNSSEC?', options: ['La privacidad de las consultas', 'La autenticidad e integridad de las respuestas', 'La velocidad'], answer: 1, why: 'Firma los registros, pero no los cifra.' },
+    { q: '¿Qué registro contiene la firma?', options: ['RRSIG', 'MX', 'CNAME'], answer: 0, why: 'RRSIG firma un conjunto de registros; DNSKEY tiene la clave para verificarla.' },
+  ],
+  pop3: [
+    { q: '¿Qué hace normalmente POP3 con el correo descargado?', options: ['Lo deja sincronizado', 'Lo borra del servidor', 'Lo reenvía'], answer: 1, why: 'Descarga y borra; IMAP, en cambio, sincroniza.' },
+    { q: '¿Qué orden descarga un mensaje?', options: ['RETR', 'DELE', 'LIST'], answer: 0, why: 'RETR n recupera el mensaje número n.' },
+  ],
+  ftp: [
+    { q: '¿Cuántas conexiones usa FTP?', options: ['Una', 'Dos: control y datos', 'Ninguna, usa UDP'], answer: 1, why: 'Las órdenes van por el 21 y los archivos por una conexión de datos aparte.' },
+    { q: '¿Por qué FTP clásico no es seguro?', options: ['Porque es lento', 'Porque la contraseña viaja sin cifrar', 'Porque usa UDP'], answer: 1, why: 'Usuario y contraseña van en texto plano; usa FTPS o SFTP.' },
+  ],
+  smb: [
+    { q: '¿Para qué sirve SMB?', options: ['Carpetas e impresoras compartidas', 'Enviar correo', 'Resolver nombres'], answer: 0, why: 'Es el protocolo de recursos compartidos de Windows.' },
+    { q: '¿Qué puerto usa SMB moderno?', options: ['21', '445', '3389'], answer: 1, why: 'SMB 2/3 funciona directamente sobre TCP 445.' },
+  ],
+  tls: [
+    { q: '¿Cuántos viajes de ida y vuelta necesita el saludo de TLS 1.3?', options: ['1', '2', '3'], answer: 0, why: 'El cliente envía su clave en el primer mensaje: 1-RTT.' },
+    { q: 'En TLS 1.3, ¿se ve el certificado en la red?', options: ['Sí, en claro', 'No, va cifrado tras el Server Hello', 'Solo con HTTP/2'], answer: 1, why: 'Todo lo posterior al Server Hello ya está cifrado.' },
+  ],
+  socks5: [
+    { q: '¿Qué hace un proxy SOCKS5 tras el CONNECT?', options: ['Interpreta el HTTP', 'Reenvía bytes sin mirarlos', 'Cierra la conexión'], answer: 1, why: 'SOCKS es un túnel genérico de bytes.' },
+    { q: '¿Qué puerto es el habitual de SOCKS?', options: ['1080', '8080', '25'], answer: 0, why: '1080 es el puerto estándar de SOCKS.' },
+  ],
+  proxy: [
+    { q: '¿Qué método usa un proxy HTTP para HTTPS?', options: ['GET', 'CONNECT', 'TRACE'], answer: 1, why: 'CONNECT abre un túnel TCP con el destino.' },
+    { q: '¿Puede el proxy leer el HTTPS que pasa por el túnel?', options: ['Sí', 'No, va cifrado de extremo a extremo', 'Solo las imágenes'], answer: 1, why: 'El TLS se negocia entre navegador y servidor.' },
+  ],
+  modbus: [
+    { q: '¿Qué código de función lee registros?', options: ['0x03', '0x06', '0x10'], answer: 0, why: '03 lee registros de retención; 06 escribe uno.' },
+    { q: '¿Qué seguridad trae Modbus/TCP?', options: ['TLS obligatorio', 'Ninguna', 'Contraseña por registro'], answer: 1, why: 'No tiene autenticación ni cifrado: hay que aislar la red.' },
+  ],
+  mqtt: [
+    { q: '¿Cómo se comunican los dispositivos MQTT?', options: ['Directamente entre sí', 'Publicando y suscribiéndose a temas en un broker', 'Por difusión'], answer: 1, why: 'El broker reparte los mensajes de cada tema.' },
+    { q: '¿Qué garantiza QoS 1?', options: ['Entrega al menos una vez', 'Nada', 'Cifrado'], answer: 0, why: 'Con QoS 1 el receptor confirma con PUBACK.' },
+  ],
+  snmp: [
+    { q: '¿Qué es una trap SNMP?', options: ['Una consulta del gestor', 'Un aviso espontáneo del agente', 'Un ataque'], answer: 1, why: 'El equipo avisa por su cuenta, por el puerto 162.' },
+    { q: '¿Cómo se identifica cada variable?', options: ['Por un OID', 'Por una URL', 'Por su MAC'], answer: 0, why: 'Cada dato de la MIB tiene un identificador de objeto (OID).' },
+  ],
+  ldap: [
+    { q: '¿Qué operación LDAP valida un usuario?', options: ['Bind', 'Search', 'Delete'], answer: 0, why: 'Bind autentica con un DN y una contraseña.' },
+    { q: '¿Qué guarda un directorio LDAP?', options: ['Usuarios, grupos y equipos', 'Páginas web', 'Vídeos'], answer: 0, why: 'Es una base jerárquica de la organización, como Active Directory.' },
+  ],
+  captive: [
+    { q: '¿Cómo detecta el sistema un portal cautivo?', options: ['Pide una URL de prueba y no recibe lo esperado', 'Por el nombre de la red', 'Por la intensidad de señal'], answer: 0, why: 'Si en vez de 204 llega una redirección, hay portal.' },
+    { q: '¿Qué código suele usar la redirección?', options: ['302', '404', '500'], answer: 0, why: 'Un 302 envía al navegador a la página de acceso.' },
+  ],
+  ipv4: [
+    { q: '¿Qué indica la marca MF?', options: ['Que vienen más fragmentos', 'Que el paquete es urgente', 'Que es multicast'], answer: 0, why: 'More Fragments: aún faltan trozos del datagrama.' },
+    { q: '¿Qué hace un router con el TTL?', options: ['Lo aumenta', 'Lo reduce en 1 y descarta el paquete si llega a 0', 'Nada'], answer: 1, why: 'Así se evitan paquetes dando vueltas para siempre.' },
+  ],
+  ipv6: [
+    { q: '¿Qué sustituye a ARP en IPv6?', options: ['NDP (mensajes ICMPv6)', 'DHCPv6', 'DNS'], answer: 0, why: 'Neighbor Solicitation y Advertisement hacen ese trabajo.' },
+    { q: '¿Cuántos bits tiene una dirección IPv6?', options: ['32', '64', '128'], answer: 2, why: '128 bits, frente a los 32 de IPv4.' },
+  ],
+  igmp: [
+    { q: '¿Para qué sirve IGMP?', options: ['Para unirse a grupos multicast', 'Para cifrar', 'Para asignar IPs'], answer: 0, why: 'Le dice al router qué grupos quiere recibir el equipo.' },
+    { q: '¿Qué rango es multicast en IPv4?', options: ['224.0.0.0 – 239.255.255.255', '10.0.0.0 – 10.255.255.255', '192.168.0.0/16'], answer: 0, why: 'El bloque 224.0.0.0/4 está reservado a multicast.' },
+  ],
+  ipsec: [
+    { q: '¿Qué protocolo negocia las claves de IPsec?', options: ['IKEv2', 'ARP', 'SNMP'], answer: 0, why: 'IKE_SA_INIT e IKE_AUTH crean el túnel.' },
+    { q: '¿En qué viajan los datos protegidos?', options: ['En ESP', 'En ICMP', 'En HTTP'], answer: 0, why: 'ESP (protocolo IP 50) cifra y autentica cada paquete.' },
+  ],
+  ospf: [
+    { q: '¿Qué algoritmo usa OSPF para calcular rutas?', options: ['Dijkstra (camino más corto)', 'Ordenación burbuja', 'Distancia en saltos de RIP'], answer: 0, why: 'Cada router calcula el árbol de caminos más cortos.' },
+    { q: '¿A qué dirección envía OSPF sus Hello?', options: ['224.0.0.5', '255.255.255.255', '8.8.8.8'], answer: 0, why: 'Es el grupo multicast de todos los routers OSPF.' },
+  ],
+  ethernet: [
+    { q: '¿Qué hace un switch con una trama a una MAC desconocida?', options: ['La descarta', 'La inunda por todos los puertos', 'La devuelve'], answer: 1, why: 'Inunda y aprende el puerto cuando llega la respuesta.' },
+    { q: '¿Cómo aprende el switch dónde está cada equipo?', options: ['Por la MAC de origen de las tramas', 'Por DNS', 'Preguntando al router'], answer: 0, why: 'Anota en qué puerto aparece cada MAC de origen.' },
+  ],
+  vlan: [
+    { q: '¿Cuánto ocupa la etiqueta 802.1Q?', options: ['4 bytes', '20 bytes', '1 bit'], answer: 0, why: 'TPID 0x8100 + 2 bytes con prioridad y VLAN ID.' },
+    { q: '¿Dónde viajan las tramas etiquetadas?', options: ['En los enlaces troncales', 'Hasta el portátil', 'Por Internet'], answer: 0, why: 'Los puertos de acceso quitan la etiqueta antes de entregar.' },
+  ],
+  stp: [
+    { q: '¿Qué problema evita STP?', options: ['Bucles de capa 2', 'Contraseñas débiles', 'Falta de IPs'], answer: 0, why: 'Bloquea enlaces redundantes para que las tramas no circulen sin fin.' },
+    { q: '¿Qué switch se convierte en raíz?', options: ['El de menor ID de puente', 'El más nuevo', 'El que tenga más puertos'], answer: 0, why: 'Gana la prioridad + MAC más baja.' },
+  ],
+  pppoe: [
+    { q: '¿Cuál es el primer mensaje de PPPoE?', options: ['PADI', 'PADS', 'LCP'], answer: 0, why: 'PADI busca servidores de acceso por difusión.' },
+    { q: '¿Por qué la MTU baja a 1492?', options: ['Por los 8 bytes de cabecera PPPoE + PPP', 'Por el Wi-Fi', 'Por DNS'], answer: 0, why: '1500 − 8 = 1492.' },
+  ],
+  wifi: [
+    { q: '¿Qué anuncia una trama Beacon?', options: ['La existencia de la red y sus capacidades', 'Un error', 'Una dirección IP'], answer: 0, why: 'El AP la emite periódicamente con el SSID.' },
+    { q: '¿Qué paso va después de la autenticación 802.11?', options: ['La asociación', 'El DNS', 'El apagado'], answer: 0, why: 'Autenticación y luego Association Request/Response.' },
+  ],
+  wpa3: [
+    { q: '¿Qué intercambio introduce WPA3-Personal?', options: ['SAE', 'WEP', 'PAP'], answer: 0, why: 'SAE demuestra conocer la contraseña sin enviarla.' },
+    { q: '¿Cuántos mensajes tiene el saludo EAPOL-Key?', options: ['2', '4', '8'], answer: 1, why: 'El saludo de 4 vías instala las claves de sesión.' },
+  ],
+  dot1x: [
+    { q: '¿Quién decide si un usuario entra en 802.1X?', options: ['El punto de acceso', 'El servidor RADIUS', 'El propio portátil'], answer: 1, why: 'El AP solo reenvía; RADIUS acepta o rechaza.' },
+    { q: '¿Qué viaja entre el equipo y el AP?', options: ['EAPOL', 'SMTP', 'BGP'], answer: 0, why: 'EAP sobre LAN (EAPOL); del AP al servidor va dentro de RADIUS.' },
+  ],
 }

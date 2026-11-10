@@ -1,4 +1,4 @@
-import { Cloud, Laptop, Network, Printer, Router, Server, Workflow, type LucideIcon } from 'lucide-react'
+import { Camera, Cloud, Cpu, Laptop, Network, Phone, Printer, Router, Server, Wifi, Workflow, type LucideIcon } from 'lucide-react'
 import { memo, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { KIND_META, LINKS, NODES, addrOf, nodesFor, route, type NodeId, type NodeKind, type Packet, type Protocol } from '../data/protocols'
 
@@ -9,6 +9,10 @@ const ICONS: Record<NodeKind, LucideIcon> = {
   printer: Printer,
   cloud: Cloud,
   server: Server,
+  phone: Phone,
+  camera: Camera,
+  wifi: Wifi,
+  chip: Cpu,
 }
 
 const motionQuery = typeof window !== 'undefined' ? matchMedia('(prefers-reduced-motion: reduce)') : null

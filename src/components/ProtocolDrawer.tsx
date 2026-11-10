@@ -27,7 +27,7 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
   }, [open])
 
   const doneCount = PROTOCOLS.filter((p) => isDone(progress, p.id, QUIZ[p.id]?.length ?? 0)).length
-  const layers = [7, 4, 3, 2].filter((l) => layer === null || l === layer)
+  const layers = [7, 6, 5, 4, 3, 2, 1].filter((l) => (layer === null || l === layer) && PROTOCOLS.some((p) => p.layer === l))
 
   return (
     <dialog
@@ -93,7 +93,7 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
             </ul>
           </section>
         ))}
-        {layers.every((l) => !PROTOCOLS.some((p) => p.layer === l)) && (
+        {layers.length === 0 && (
           <p className="p-3 text-sm text-muted">Todavía no hay lecciones para esta capa.</p>
         )}
       </nav>

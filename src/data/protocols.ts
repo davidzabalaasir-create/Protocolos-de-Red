@@ -1,3 +1,6 @@
+import { tcpHandshake } from './helpers'
+import { MORE_PROTOCOLS } from './more'
+
 export type NodeId =
   | 'client'
   | 'router'
@@ -15,8 +18,26 @@ export type NodeId =
   | 'vpn'
   | 'isp'
   | 'transit'
+  | 'phone'
+  | 'peer'
+  | 'sipsrv'
+  | 'stun'
+  | 'camera'
+  | 'plc'
+  | 'filesrv'
+  | 'dc'
+  | 'ingest'
+  | 'ap'
+  | 'radius'
+  | 'access'
+  | 'proxy'
+  | 'switch2'
+  | 'pc2'
+  | 'iot'
+  | 'broker'
+  | 'core'
 
-export type NodeKind = 'laptop' | 'router' | 'switch' | 'printer' | 'cloud' | 'server'
+export type NodeKind = 'laptop' | 'router' | 'switch' | 'printer' | 'cloud' | 'server' | 'phone' | 'camera' | 'wifi' | 'chip'
 
 export interface NetNode {
   id: NodeId
@@ -44,6 +65,24 @@ export const NODES: Record<NodeId, NetNode> = {
   vpn: { id: 'vpn', label: 'Servidor VPN', addr: '198.51.100.77', kind: 'server', x: 650, y: 520 },
   isp: { id: 'isp', label: 'Router del ISP', addr: '192.0.2.1 · AS 64500', kind: 'router', x: 200, y: 560 },
   transit: { id: 'transit', label: 'Router de tránsito', addr: '192.0.2.2 · AS 64510', kind: 'router', x: 480, y: 560 },
+  phone: { id: 'phone', label: 'Teléfono IP', addr: '192.168.1.40', kind: 'phone', x: 90, y: 470 },
+  peer: { id: 'peer', label: 'Equipo remoto', addr: '198.51.100.200', kind: 'laptop', x: 830, y: 330 },
+  sipsrv: { id: 'sipsrv', label: 'Servidor SIP', addr: '198.51.100.60', kind: 'server', x: 650, y: 110 },
+  stun: { id: 'stun', label: 'Servidor STUN', addr: '192.0.2.19', kind: 'server', x: 650, y: 110 },
+  camera: { id: 'camera', label: 'Cámara IP', addr: '192.168.1.64', kind: 'camera', x: 420, y: 50 },
+  plc: { id: 'plc', label: 'PLC industrial', addr: '192.168.1.80', kind: 'chip', x: 420, y: 130 },
+  filesrv: { id: 'filesrv', label: 'Servidor de archivos', addr: '192.168.1.20', kind: 'server', x: 420, y: 210 },
+  dc: { id: 'dc', label: 'Servidor LDAP', addr: '192.168.1.15', kind: 'server', x: 420, y: 290 },
+  ingest: { id: 'ingest', label: 'Servidor de streaming', addr: '203.0.113.50', kind: 'server', x: 650, y: 310 },
+  ap: { id: 'ap', label: 'Punto de acceso', addr: '192.168.1.2', kind: 'wifi', x: 250, y: 470 },
+  radius: { id: 'radius', label: 'Servidor RADIUS', addr: '192.168.1.5', kind: 'server', x: 450, y: 470 },
+  access: { id: 'access', label: 'Servidor de acceso', addr: '198.51.100.1', kind: 'router', x: 450, y: 330 },
+  proxy: { id: 'proxy', label: 'Proxy', addr: '192.0.2.80', kind: 'server', x: 380, y: 420 },
+  switch2: { id: 'switch2', label: 'Switch 2', addr: 'troncal 802.1Q', kind: 'switch', x: 560, y: 110 },
+  pc2: { id: 'pc2', label: 'Equipo VLAN 20', addr: '192.168.20.30', kind: 'laptop', x: 720, y: 110 },
+  iot: { id: 'iot', label: 'Sensor IoT', addr: '192.168.1.70', kind: 'chip', x: 90, y: 560 },
+  broker: { id: 'broker', label: 'Broker MQTT', addr: '198.51.100.90', kind: 'server', x: 650, y: 450 },
+  core: { id: 'core', label: 'Router núcleo', addr: '10.0.0.2', kind: 'router', x: 480, y: 420 },
 }
 
 /** Physical links of the diagram; packets travel along the shortest path. */
@@ -62,6 +101,25 @@ export const LINKS: [NodeId, NodeId][] = [
   ['internet', 'ntp'],
   ['internet', 'vpn'],
   ['isp', 'transit'],
+  ['phone', 'router'],
+  ['internet', 'sipsrv'],
+  ['internet', 'peer'],
+  ['internet', 'stun'],
+  ['switch', 'camera'],
+  ['switch', 'plc'],
+  ['switch', 'filesrv'],
+  ['switch', 'dc'],
+  ['internet', 'ingest'],
+  ['client', 'ap'],
+  ['ap', 'radius'],
+  ['router', 'access'],
+  ['router', 'proxy'],
+  ['proxy', 'internet'],
+  ['switch', 'switch2'],
+  ['switch2', 'pc2'],
+  ['iot', 'router'],
+  ['internet', 'broker'],
+  ['router', 'core'],
 ]
 
 export type PacketKind = 'dns' | 'tcp' | 'udp' | 'tls' | 'req' | 'res' | 'ctrl' | 'err'
@@ -86,6 +144,9 @@ export interface Packet {
   size: string
   kind: PacketKind
   note: string
+  /** Overrides for addresses that aren't the node's own (multicast, IPv6, link-local…) */
+  srcIp?: string
+  dstIp?: string
 }
 
 export interface Protocol {
@@ -108,13 +169,8 @@ export const OSI_LAYERS: Record<number, string> = {
   7: 'Aplicación',
 }
 
-const tcpHandshake = (to: NodeId, port: number, t0: number, from: NodeId = 'client', cport = 52344): Packet[] => [
-  { t: t0, from, to, proto: 'TCP', info: `${cport} → ${port} [SYN] Seq=0`, size: '66 B', kind: 'tcp', note: 'El cliente pide abrir una conexión y propone su número de secuencia inicial.' },
-  { t: t0 + 0.017, from: to, to: from, proto: 'TCP', info: `${port} → ${cport} [SYN, ACK] Seq=0 Ack=1`, size: '66 B', kind: 'tcp', note: 'El servidor acepta, confirma la secuencia del cliente y envía la suya.' },
-  { t: t0 + 0.034, from, to, proto: 'TCP', info: `${cport} → ${port} [ACK] Seq=1 Ack=1`, size: '60 B', kind: 'tcp', note: 'El cliente confirma: la conexión queda establecida (saludo de tres vías).' },
-]
 
-export const PROTOCOLS: Protocol[] = [
+const BASE_PROTOCOLS: Protocol[] = [
   {
     id: 'http',
     name: 'HTTP',
@@ -496,6 +552,8 @@ export const PROTOCOLS: Protocol[] = [
     ],
   },
 ]
+
+export const PROTOCOLS: Protocol[] = [...BASE_PROTOCOLS, ...MORE_PROTOCOLS]
 
 const routeCache = new Map<string, NodeId[]>()
 
