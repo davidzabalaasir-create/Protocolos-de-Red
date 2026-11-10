@@ -341,8 +341,17 @@ export const PROTOCOLS: Protocol[] = [
   },
 ]
 
-/** Shortest path between two nodes over LINKS (BFS). */
+const routeCache = new Map<string, NodeId[]>()
+
+/** Shortest path between two nodes over LINKS (BFS), cached: the topology never changes. */
 export function route(from: NodeId, to: NodeId): NodeId[] {
+  const key = `${from}>${to}`
+  let hit = routeCache.get(key)
+  if (!hit) routeCache.set(key, (hit = bfs(from, to)))
+  return hit
+}
+
+function bfs(from: NodeId, to: NodeId): NodeId[] {
   const prev = new Map<NodeId, NodeId | null>([[from, null]])
   const queue: NodeId[] = [from]
   while (queue.length) {
@@ -361,10 +370,17 @@ export function route(from: NodeId, to: NodeId): NodeId[] {
   return path
 }
 
-export function nodesFor(p: Protocol): NodeId[] {
-  const set = new Set<NodeId>()
-  for (const pk of p.packets) for (const n of route(pk.from, pk.to)) set.add(n)
-  return [...set]
+const nodesCache = new WeakMap<Protocol, Set<NodeId>>()
+
+/** Every node any packet of the protocol passes through (cached per protocol). */
+export function nodesFor(p: Protocol): Set<NodeId> {
+  let hit = nodesCache.get(p)
+  if (!hit) {
+    hit = new Set<NodeId>()
+    for (const pk of p.packets) for (const n of route(pk.from, pk.to)) hit.add(n)
+    nodesCache.set(p, hit)
+  }
+  return hit
 }
 
 export function addrOf(id: NodeId): string {

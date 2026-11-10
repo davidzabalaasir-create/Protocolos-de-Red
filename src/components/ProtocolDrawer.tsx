@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
+import { Button } from './ui/Button'
 
 interface Props {
   open: boolean
@@ -36,14 +37,9 @@ export function ProtocolDrawer({ open, layer, currentId, onClose, onSelect, onLa
         <h2 id="drawer-title" className="text-sm font-bold tracking-widest uppercase">
           Protocolos
         </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="grid size-11 place-items-center rounded-md hover:bg-panel-2"
-        >
+        <Button variant="ghost" size="icon" label="Cerrar lista de protocolos" shortcut="Esc" onClick={onClose}>
           <X aria-hidden className="size-5" />
-          <span className="sr-only">Cerrar lista de protocolos</span>
-        </button>
+        </Button>
       </div>
 
       {layer !== null && (
@@ -51,9 +47,9 @@ export function ProtocolDrawer({ open, layer, currentId, onClose, onSelect, onLa
           <span>
             Filtrado: capa {layer} · {OSI_LAYERS[layer]}
           </span>
-          <button type="button" onClick={() => onLayer(null)} className="min-h-11 px-2 font-bold text-accent underline dark:text-blue-300">
+          <Button variant="ghost" size="sm" onClick={() => onLayer(null)}>
             Ver todas
-          </button>
+          </Button>
         </div>
       )}
 
@@ -70,7 +66,7 @@ export function ProtocolDrawer({ open, layer, currentId, onClose, onSelect, onLa
                     type="button"
                     aria-current={p.id === currentId ? 'true' : undefined}
                     onClick={() => onSelect(p.id)}
-                    className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md px-3 text-left hover:bg-panel-2 aria-[current]:bg-accent aria-[current]:text-accent-fg"
+                    className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 text-left transition-colors duration-150 hover:bg-panel-2 hover:pl-4 aria-[current]:bg-accent aria-[current]:text-accent-fg"
                   >
                     <span className="font-bold">{p.name}</span>
                     <span className="truncate text-xs opacity-80">{p.full}</span>

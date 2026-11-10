@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Header } from './components/Header'
 import { Overview } from './components/Overview'
 import { PacketFlow } from './components/PacketFlow'
@@ -47,12 +47,36 @@ export default function App() {
     return () => clearTimeout(id)
   }, [playing, step, last, speed])
 
-  const select = (id: string) => {
+  const select = useCallback((id: string) => {
     setProtocolId(id)
     setStep(-1)
     setPlaying(false)
     setDrawer(false)
-  }
+  }, [])
+
+  // Stable callbacks so the memoized Stage / PacketFlow / rows don't re-render needlessly.
+  const goTo = useCallback(
+    (i: number) => {
+      setPlaying(false)
+      setStep(Math.max(0, Math.min(i, last)))
+    },
+    [last],
+  )
+  const togglePlay = useCallback(() => {
+    setPlaying((was) => {
+      if (!was) setStep((s) => (s >= last ? -1 : s))
+      return !was
+    })
+  }, [last])
+  const reset = useCallback(() => {
+    setPlaying(false)
+    setStep(-1)
+  }, [])
+  const openMenu = useCallback(() => setDrawer(true), [])
+  const openLayer = useCallback((l: number) => {
+    setLayerFilter(l)
+    setDrawer(true)
+  }, [])
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -62,14 +86,11 @@ export default function App() {
       >
         Saltar al contenido
       </a>
-      <Header theme={theme} onTheme={setTheme} onOpenMenu={() => setDrawer(true)} />
+      <Header theme={theme} onTheme={setTheme} onOpenMenu={openMenu} />
       <Toolbar
         currentLayer={protocol.layer}
         onSelect={select}
-        onLayer={(l) => {
-          setLayerFilter(l)
-          setDrawer(true)
-        }}
+        onLayer={openLayer}
       />
 
       <main id="main" className="flex flex-1 flex-col gap-3 px-3 pb-3 sm:px-4">
@@ -84,19 +105,9 @@ export default function App() {
           playing={playing}
           speed={speed}
           onSpeed={setSpeed}
-          onStep={(i) => {
-            setPlaying(false)
-            setStep(Math.max(0, Math.min(i, last)))
-          }}
-          onPlay={() => {
-            if (playing) return setPlaying(false)
-            if (step >= last) setStep(-1)
-            setPlaying(true)
-          }}
-          onReset={() => {
-            setPlaying(false)
-            setStep(-1)
-          }}
+          onStep={goTo}
+          onPlay={togglePlay}
+          onReset={reset}
         />
       </main>
 

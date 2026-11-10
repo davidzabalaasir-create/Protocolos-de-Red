@@ -1,6 +1,7 @@
+import { memo } from 'react'
 import type { Protocol } from '../data/protocols'
 
-export function Overview({ protocol }: { protocol: Protocol }) {
+export const Overview = memo(function Overview({ protocol }: { protocol: Protocol }) {
   return (
     <aside aria-labelledby="overview-title" className="flex flex-col rounded-lg border border-line bg-panel">
       <h2 id="overview-title" className="border-b border-line px-4 py-3 text-base font-bold tracking-widest uppercase">
@@ -27,4 +28,4 @@ export function Overview({ protocol }: { protocol: Protocol }) {
       </div>
     </aside>
   )
-}
+})

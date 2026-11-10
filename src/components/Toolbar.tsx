@@ -74,7 +74,7 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
               setQuery('')
             }
           }}
-          className="h-11 w-full rounded-md border border-line-strong bg-panel pr-20 pl-9 text-sm placeholder:text-muted"
+          className="h-11 w-full rounded-lg border border-line-strong bg-panel shadow-sm transition-colors hover:border-accent pr-20 pl-9 text-sm placeholder:text-muted"
         />
         <kbd className="pointer-events-none absolute top-1/2 right-2 hidden -translate-y-1/2 rounded border border-line px-1.5 py-0.5 text-[11px] text-muted sm:block">
           Ctrl K
@@ -118,7 +118,7 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
               onClick={() => onLayer(l)}
               aria-current={l === currentLayer ? 'true' : undefined}
               aria-label={`Capa ${l}, ${OSI_LAYERS[l]}: ver protocolos`}
-              className="grid size-11 place-items-center rounded border border-line-strong bg-panel text-sm hover:bg-panel-2 aria-[current]:border-accent aria-[current]:bg-accent aria-[current]:font-bold aria-[current]:text-accent-fg"
+              className="grid size-11 place-items-center rounded-lg border border-line-strong bg-panel text-sm font-bold shadow-sm transition-[background-color,border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-accent hover:bg-panel-2 active:translate-y-0 aria-[current]:border-accent aria-[current]:bg-accent aria-[current]:text-accent-fg aria-[current]:shadow-[0_6px_16px_-6px_var(--accent)]"
             >
               {l}
             </button>
