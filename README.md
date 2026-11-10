@@ -2,6 +2,8 @@
 
 Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de **16 protocolos** —HTTP, HTTPS, HTTP/3 (QUIC), WebSocket, DNS, DHCP, NTP, SSH, SMTP, IMAP, BGP, TCP, UDP, ICMP, WireGuard y ARP— paso a paso, en un diagrama de red, un diagrama de secuencia y una tabla tipo Wireshark, con **cada paquete decodificado byte a byte**.
 
+**🌐 En vivo: https://protocolos-de-red-eight.vercel.app**
+
 **Diseñado por David.** Interfaz inspirada en [Protocol Explorer](https://protocol-explorer-alpha.vercel.app/), reconstruida desde cero con React + Tailwind CSS y contenido propio en español.
 
 ## Funciones
