@@ -78,7 +78,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
                 role="radio"
                 aria-checked={speed === s}
                 onClick={() => onSpeed(s)}
-                className="min-h-9 min-w-11 rounded-md px-2 text-xs font-bold tabular-nums transition-colors duration-150 hover:bg-panel-2 aria-checked:bg-accent aria-checked:text-accent-fg"
+                className="min-h-9 min-w-11 rounded-md px-2 text-xs font-bold tabular-nums hover:bg-panel-2 aria-checked:bg-accent aria-checked:text-accent-fg"
               >
                 {s}×
               </button>
@@ -115,7 +115,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
           className="h-1.5 flex-1 overflow-hidden rounded-full bg-panel-2"
         >
           <div
-            className="h-full origin-left rounded-full bg-accent transition-transform duration-300 ease-out"
+            className="h-full origin-left rounded-full bg-accent"
             style={{ transform: `scaleX(${total ? shown / total : 0})` }}
           />
         </div>
@@ -158,7 +158,7 @@ const Row = memo(function Row({ p, i, current, onStep, onInspect, rowRef }: { p:
       ref={rowRef}
       aria-current={current ? 'step' : undefined}
       onClick={() => onStep(i)}
-      className="cursor-pointer border-t border-line transition-colors duration-150 hover:bg-panel-2 aria-[current]:bg-panel-2 aria-[current]:shadow-[inset_3px_0_0_var(--accent)]"
+      className="cursor-pointer border-t border-line hover:bg-panel-2 aria-[current]:bg-panel-2 aria-[current]:shadow-[inset_3px_0_0_var(--accent)]"
     >
       <td className="px-4 py-1">
         <button
@@ -167,7 +167,7 @@ const Row = memo(function Row({ p, i, current, onStep, onInspect, rowRef }: { p:
             e.stopPropagation()
             onStep(i)
           }}
-          className="grid size-8 place-items-center rounded-full text-[11px] font-bold text-[#0b1020] transition-transform duration-150 hover:scale-110 active:scale-95"
+          className="grid size-8 place-items-center rounded-full text-[11px] font-bold text-[#0b1020]"
           style={{ background: KIND_META[p.kind].color }}
         >
           {i + 1}
@@ -188,7 +188,7 @@ const Row = memo(function Row({ p, i, current, onStep, onInspect, rowRef }: { p:
             e.stopPropagation()
             onInspect(i)
           }}
-          className="grid size-8 place-items-center rounded-md border border-line-strong transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-accent-fg"
+          className="grid size-8 place-items-center rounded-md border border-line-strong hover:border-accent hover:bg-accent hover:text-accent-fg"
         >
           <Binary aria-hidden className="size-4" />
           <span className="sr-only">Inspeccionar paquete {i + 1}</span>

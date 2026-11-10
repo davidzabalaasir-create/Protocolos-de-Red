@@ -15,8 +15,6 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const base =
   'relative inline-flex select-none items-center justify-center gap-2 rounded-lg border text-xs font-bold tracking-wider uppercase ' +
-  'transition-[background-color,border-color,box-shadow,transform,filter] duration-150 ease-out ' +
-  'active:translate-y-px active:scale-[0.98] ' +
   'disabled:pointer-events-none disabled:opacity-45 ' +
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 

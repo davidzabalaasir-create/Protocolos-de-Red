@@ -47,8 +47,6 @@ function viewBoxFor(ids: Set<NodeId>) {
   return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`
 }
 
-const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2)
-
 interface Props {
   protocol: Protocol
   step: number
@@ -92,7 +90,7 @@ export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) 
                 document.getElementById(`tab-${next}`)?.focus()
               }
             }}
-            className="flex min-h-10 items-center gap-1.5 rounded-md px-3 text-xs font-bold tracking-wider uppercase transition-colors duration-150 hover:bg-panel-2 aria-selected:bg-accent aria-selected:text-accent-fg aria-selected:shadow-sm"
+            className="flex min-h-10 items-center gap-1.5 rounded-md px-3 text-xs font-bold tracking-wider uppercase hover:bg-panel-2 aria-selected:bg-accent aria-selected:text-accent-fg aria-selected:shadow-sm"
           >
             <Icon aria-hidden className="size-4" />
             {label}
@@ -196,7 +194,7 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
     let raf = 0
     const tick = (now: number) => {
       const t = Math.min((now - start) / ms, 1)
-      place(easeInOut(t))
+      place(t)
       if (t < 1) raf = requestAnimationFrame(tick)
       else setArrived(true)
     }

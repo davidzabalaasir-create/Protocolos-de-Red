@@ -51,7 +51,7 @@ export const Quiz = memo(function Quiz({ protocolId, best, onScore }: Props) {
                     aria-pressed={chosen === oi}
                     aria-disabled={chosen !== null}
                     onClick={() => choose(qi, oi)}
-                    className={`flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors duration-150 ${
+                    className={`flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2 text-left ${
                       state === 'right'
                         ? 'border-green-600 bg-green-600/15'
                         : state === 'wrong'

@@ -78,7 +78,7 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
                     type="button"
                     aria-current={p.id === currentId ? 'true' : undefined}
                     onClick={() => onSelect(p.id)}
-                    className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 text-left transition-colors duration-150 hover:bg-panel-2 hover:pl-4 aria-[current]:bg-accent aria-[current]:text-accent-fg"
+                    className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 text-left hover:bg-panel-2 aria-[current]:bg-accent aria-[current]:text-accent-fg"
                   >
                     <span className="flex items-center gap-2 font-bold">
                       {p.name}

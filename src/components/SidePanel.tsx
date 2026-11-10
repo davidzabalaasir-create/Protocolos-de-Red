@@ -47,7 +47,7 @@ export function SidePanel({ protocol, step, tab, onTab, done, bestScore, onScore
               if (e.key === 'ArrowRight') move(1)
               else if (e.key === 'ArrowLeft') move(-1)
             }}
-            className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-bold tracking-wider uppercase transition-colors duration-150 hover:bg-panel-2 aria-selected:bg-accent aria-selected:text-accent-fg"
+            className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-bold tracking-wider uppercase hover:bg-panel-2 aria-selected:bg-accent aria-selected:text-accent-fg"
           >
             <Icon aria-hidden className="size-4" />
             {label}

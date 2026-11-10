@@ -74,12 +74,12 @@ export const Inspector = memo(function Inspector({ packet, index }: Props) {
                 onClick={() => toggle(l.id)}
                 onMouseEnter={() => setHover(l)}
                 onMouseLeave={() => setHover(null)}
-                className="flex min-h-10 w-full items-center gap-2 bg-panel-2 px-3 text-left font-bold transition-colors hover:brightness-110"
+                className="flex min-h-10 w-full items-center gap-2 bg-panel-2 px-3 text-left font-bold hover:brightness-110"
               >
                 <span aria-hidden className="size-2.5 shrink-0 rounded-sm" style={{ background: l.color }} />
                 <span className="flex-1">{l.name}</span>
                 <span className="font-normal text-muted">{l.len} B</span>
-                <ChevronDown aria-hidden className={`size-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+                <ChevronDown aria-hidden className={`size-4 ${open ? 'rotate-180' : ''}`} />
               </button>
               {open && (
                 <dl className="divide-y divide-line">
@@ -114,7 +114,7 @@ export const Inspector = memo(function Inspector({ packet, index }: Props) {
                   return (
                     <span
                       key={bi}
-                      className={`rounded-sm px-px transition-colors ${inHover(i) ? 'bg-accent text-accent-fg' : ''}`}
+                      className={`rounded-sm px-px ${inHover(i) ? 'bg-accent text-accent-fg' : ''}`}
                       style={inHover(i) ? undefined : { boxShadow: `inset 0 -2px 0 ${l?.color ?? 'transparent'}` }}
                     >
                       {b.toString(16).padStart(2, '0')}
