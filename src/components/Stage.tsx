@@ -1,6 +1,6 @@
 import { Camera, Cloud, Cpu, Laptop, Network, Phone, Printer, Router, Server, Wifi, Workflow, type LucideIcon } from 'lucide-react'
 import { memo, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { KIND_META, LINKS, NODES, addrOf, nodesFor, route, type NodeId, type NodeKind, type Packet, type Protocol } from '../data/protocols'
+import { kindColor, LINKS, NODES, addrOf, nodesFor, route, type NodeId, type NodeKind, type Packet, type Protocol } from '../data/protocols'
 
 const ICONS: Record<NodeKind, LucideIcon> = {
   laptop: Laptop,
@@ -60,7 +60,7 @@ interface Props {
 export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) {
   const [view, setView] = useState<'net' | 'seq'>('net')
   const packet = step >= 0 ? protocol.packets[step] : null
-  const color = packet ? KIND_META[packet.kind].color : ''
+  const color = packet ? kindColor(packet.kind) : ''
 
   const summary = packet
     ? `Paquete ${step + 1} de ${protocol.packets.length}: ${packet.proto} de ${NODES[packet.from].label} a ${NODES[packet.to].label}. ${packet.info}.`
@@ -173,7 +173,7 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
   const viewBox = useMemo(() => viewBoxFor(visible), [visible])
   const path = packet ? route(packet.from, packet.to) : null
   const active = useMemo(() => (path ? new Set(path) : EMPTY), [path])
-  const color = packet ? KIND_META[packet.kind].color : ''
+  const color = packet ? kindColor(packet.kind) : ''
 
   const dotRef = useRef<SVGGElement>(null)
   const [arrived, setArrived] = useState(false)
@@ -251,7 +251,7 @@ const SequenceDiagram = memo(function SequenceDiagram({ protocol, step, summary 
         const x2 = x(p.to)
         const dir = x2 > x1 ? 1 : -1
         const done = i <= step
-        const c = done ? KIND_META[p.kind].color : 'var(--line)'
+        const c = done ? kindColor(p.kind) : 'var(--line)'
         return (
           <g key={i} aria-hidden opacity={i === step ? 1 : done ? 0.85 : 0.5}>
             <line x1={x1} x2={x2 - dir * 8} y1={y} y2={y} stroke={c} strokeWidth={i === step ? 3 : 2} strokeDasharray={p.kind === 'err' ? '6 4' : undefined} />

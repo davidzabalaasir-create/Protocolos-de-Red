@@ -27,6 +27,8 @@ export interface Frame {
   bytes: Uint8Array
   layers: Layer[]
   truncated: number
+  /** pcap link type: 1 Ethernet, 105 IEEE 802.11, 251 Bluetooth LE */
+  linktype: number
 }
 
 export const LAYER_COLORS: Record<Layer['id'], string> = {
@@ -168,10 +170,17 @@ const TRANSPORT: Record<string, Transport> = {
   EAPOL: { kind: 'l2' },
   STP: { kind: 'l2' },
   '802.11': { kind: 'l2' },
+  BLE: { kind: 'l2' },
+  Traceroute: { kind: 'udp', port: 33434, clientPort: 52800 },
+  'HTTP/2': { kind: 'tcp', port: 443 },
+  Kerberos: { kind: 'udp', port: 88, clientPort: 50088 },
+  TFTP: { kind: 'udp', port: 69, clientPort: 50069 },
+  Telnet: { kind: 'tcp', port: 23 },
+  CoAP: { kind: 'udp', port: 5683, clientPort: 50683 },
 }
 
 /** Which end of a conversation is the "server" side (gets the well-known port). */
-const RANK: Partial<Record<NodeId, number>> = { client: 0, isp: 0, phone: 0, iot: 0, switch: 1, switch2: 1, router: 1, ap: 1, dns: 2 }
+const RANK: Partial<Record<NodeId, number>> = { client: 0, isp: 0, phone: 0, iot: 0.5, switch: 1, switch2: 1, router: 1, ap: 1, dns: 2 }
 const rank = (id: NodeId) => RANK[id] ?? 3
 
 // ── application payloads ──────────────────────────────────────────────────
@@ -400,21 +409,65 @@ function morePayload(w: Writer, p: Packet): boolean {
       return true
     }
     case 'SMB': {
+      const le16 = (n: number) => [n & 0xff, (n >> 8) & 0xff]
+      const le32 = (n: number) => [n & 0xff, (n >> 8) & 0xff, (n >> 16) & 0xff, (n >>> 24) & 0xff]
+      const le64 = (n: number) => [...le32(n), 0, 0, 0, 0]
+      const utf16 = (t: string) => [...t].flatMap((c) => le16(c.charCodeAt(0)))
       const cmd = /Negotiate/.test(p.info) ? 0 : /Session/.test(p.info) ? 1 : /Tree/.test(p.info) ? 3 : 8
-      const names = ['NEGOTIATE', 'SESSION_SETUP', '', 'TREE_CONNECT', '', '', '', '', 'READ']
+      const names: Record<number, string> = { 0: 'NEGOTIATE', 1: 'SESSION_SETUP', 3: 'TREE_CONNECT', 8: 'READ' }
       const resp = /Response/.test(p.info)
-      const body = noise(seed, 48)
-      w.field('NetBIOS: longitud', `${64 + body.length}`, [0, 0, ...u16(64 + body.length)])
+      const msgId = [0, 1, 2, 3, 4][cmd === 8 ? 4 : cmd === 3 ? 3 : cmd]
+      const sessionId = cmd >= 1 && !(cmd === 1 && !resp) ? noise('smb-sid', 8) : Array(8).fill(0)
+      const treeId = cmd === 8 || (cmd === 3 && resp) ? le32(1) : le32(0)
+
+      // body per command (all little-endian, as on the wire)
+      const body: [string, string, number[]][] = []
+      if (cmd === 0 && !resp) {
+        const dialects = [0x0202, 0x0300, 0x0311]
+        body.push(['StructureSize', '36', le16(36)], ['Nº de dialectos', '3', le16(3)], ['Modo de seguridad', 'firma habilitada', le16(1)], ['Reservado', '0', le16(0)])
+        body.push(['Capacidades', 'DFS, leasing, multicanal, cifrado…', le32(0x7f)], ['GUID del cliente', '16 bytes', noise('cguid', 16)], ['Contextos de negociación', 'offset 0, cuenta 0', [0, 0, 0, 0, 0, 0, 0, 0]])
+        body.push(['Dialectos', 'SMB 2.0.2, 3.0, 3.1.1', dialects.flatMap(le16)])
+      } else if (cmd === 0) {
+        body.push(['StructureSize', '65', le16(65)], ['Modo de seguridad', 'firma habilitada', le16(1)], ['Dialecto elegido', 'SMB 3.1.1 (0x0311)', le16(0x0311)], ['Contextos', '0', le16(0)])
+        body.push(['GUID del servidor', '16 bytes', noise('sguid', 16)], ['Capacidades', '0x0000002f', le32(0x2f)])
+        body.push(['Máx. transacción / lectura / escritura', '8 MiB cada una', [...le32(8388608), ...le32(8388608), ...le32(8388608)]])
+        body.push(['Hora del sistema / arranque', 'FILETIME', [...noise('time', 8), 0, 0, 0, 0, 0, 0, 0, 0]])
+        body.push(['Búfer de seguridad', 'offset 128, 32 bytes', [...le16(128), ...le16(32), 0, 0, 0, 0]], ['SPNEGO', 'mecanismos: NTLM, Kerberos', [0x60, 0x1e, ...noise('spnego', 30)]])
+      } else if (cmd === 1 && !resp) {
+        const blob = [...ascii('NTLMSSP\0'), 1, 0, 0, 0, ...noise('ntlm', 24)]
+        body.push(['StructureSize', '25', le16(25)], ['Flags / modo', 'firma habilitada', [0, 1]], ['Capacidades / canal', '0', [...le32(1), ...le32(0)]])
+        body.push(['Búfer de seguridad', `offset 88, ${blob.length} bytes`, [...le16(88), ...le16(blob.length)]], ['Sesión previa', '0', le64(0)], ['NTLMSSP_NEGOTIATE', '"NTLMSSP" tipo 1', blob])
+      } else if (cmd === 1) {
+        const blob = [...ascii('NTLMSSP\0'), 3, 0, 0, 0, ...noise('ntlm3', 16)]
+        body.push(['StructureSize', '9', le16(9)], ['Flags de sesión', '0', le16(0)], ['Búfer de seguridad', `offset 72, ${blob.length} bytes`, [...le16(72), ...le16(blob.length)]], ['Token', 'autenticación aceptada', blob])
+      } else if (cmd === 3 && !resp) {
+        const path = utf16('\\\\servidor\\docs')
+        body.push(['StructureSize', '9', le16(9)], ['Reservado', '0', le16(0)], ['Ruta', `offset 72, ${path.length} bytes`, [...le16(72), ...le16(path.length)]], ['Recurso (UTF-16)', '\\\\servidor\\docs', path])
+      } else if (cmd === 3) {
+        body.push(['StructureSize', '16', le16(16)], ['Tipo de recurso', 'disco (1)', [1, 0]], ['Flags', '0', le32(0)], ['Capacidades', '0', le32(0)], ['Acceso máximo', '0x001f01ff (control total)', le32(0x001f01ff)])
+      } else if (!resp) {
+        body.push(['StructureSize', '49', le16(49)], ['Relleno / flags', '0x50 / 0', [0x50, 0]], ['Longitud a leer', '65536', le32(65536)], ['Desplazamiento', '0', le64(0)])
+        body.push(['ID de archivo', '16 bytes', noise('fid', 16)], ['Mínimo / canal / restante', '0', Array(12).fill(0)], ['Info de canal', '0', [0, 0, 0, 0]], ['Búfer', '0', [0]])
+      } else {
+        body.push(['StructureSize', '17', le16(17)], ['Offset de datos', '0x50', [0x50, 0]], ['Longitud de datos', '65536', le32(65536)], ['Restante / reservado', '0', Array(8).fill(0)])
+        body.push(['Datos del archivo', 'ZIP (.docx): "PK\\x03\\x04"', [0x50, 0x4b, 3, 4, ...noise('docx', 120)]])
+      }
+      const bodyLen = body.reduce((n, [, , b]) => n + b.length, 0)
+      w.field('NetBIOS: longitud', `${64 + bodyLen}`, [0, (64 + bodyLen) >> 16, ...u16((64 + bodyLen) & 0xffff)])
       w.field('ID de protocolo', '\\xfeSMB (SMB2/3)', [0xfe, 0x53, 0x4d, 0x42])
-      w.field('Longitud de cabecera', '64', [64, 0])
-      w.field('Créditos / estado', resp ? 'STATUS_SUCCESS' : '—', [1, 0, 0, 0, 0, 0])
-      w.field('Comando', `${names[cmd]} (${cmd})`, [cmd, 0])
-      w.field('Créditos pedidos', '1', [1, 0])
-      w.field('Flags', resp ? 'respuesta' : 'petición', [resp ? 1 : 0, 0, 0, 0])
-      w.field('Siguiente / ID de mensaje', `${cmd}`, [0, 0, 0, 0, cmd, 0, 0, 0, 0, 0, 0, 0])
-      w.field('Tree ID / Session ID', cmd >= 3 ? 'asignados' : '0', [0, 0, 0, 0, ...(cmd >= 3 ? [1, 0, 0, 0] : [0, 0, 0, 0]), ...(cmd >= 1 ? noise('sid', 8) : Array(8).fill(0))])
+      w.field('Longitud de cabecera', '64', le16(64))
+      w.field('Cargo de créditos', '1', le16(1))
+      w.field('Estado', resp ? 'STATUS_SUCCESS (0)' : '0', le32(0))
+      w.field('Comando', `${names[cmd]} (${cmd})`, le16(cmd))
+      w.field('Créditos', resp ? 'concedidos: 1' : 'pedidos: 1', le16(1))
+      w.field('Flags', resp ? 'respuesta (0x1)' : 'petición', le32(resp ? 1 : 0))
+      w.field('Siguiente comando', '0', le32(0))
+      w.field('ID de mensaje', `${msgId}`, le64(msgId))
+      w.field('ID de proceso', '0xfeff', le32(0xfeff))
+      w.field('ID de árbol', cmd === 8 || (cmd === 3 && resp) ? '1' : '0', treeId)
+      w.field('ID de sesión', sessionId.some(Boolean) ? 'asignado por el servidor' : '0', sessionId)
       w.field('Firma', cmd >= 3 ? 'AES-CMAC' : 'sin firmar', cmd >= 3 ? noise(seed + 'sig', 16) : Array(16).fill(0))
-      w.field('Cuerpo del mensaje', p.info, body)
+      for (const [n, v, b] of body) w.field(n, v, b)
       return true
     }
     case 'SOCKS5': {
@@ -487,22 +540,58 @@ function morePayload(w: Writer, p: Packet): boolean {
       return true
     }
     case 'LDAP': {
-      const ops: [RegExp, number, string][] = [
-        [/bindRequest/, 0x60, 'BindRequest'],
-        [/bindResponse/, 0x61, 'BindResponse'],
-        [/searchRequest/, 0x63, 'SearchRequest'],
-        [/searchResEntry/, 0x64, 'SearchResultEntry'],
-        [/searchResDone/, 0x65, 'SearchResultDone'],
-        [/unbind/, 0x42, 'UnbindRequest'],
+      const len = (n: number) => (n < 128 ? [n] : n < 256 ? [0x81, n] : [0x82, n >> 8, n & 0xff])
+      const tlv = (tag: number, content: number[]) => [tag, ...len(content.length), ...content]
+      const str = (t: string) => tlv(0x04, ascii(t))
+      const int = (n: number) => tlv(0x02, [n])
+      const enumv = (n: number) => tlv(0x0a, [n])
+      const dn = 'cn=david,ou=personas,dc=ejemplo'
+      // [label, value, encoded component]
+      let tag = 0x60
+      let name = 'BindRequest'
+      let parts: [string, string, number[]][] = []
+      const result: [string, string, number[]][] = [
+        ['resultCode', 'success (0)', enumv(0)],
+        ['matchedDN', '""', str('')],
+        ['diagnosticMessage', '""', str('')],
       ]
-      const [, tag, name] = ops.find(([re]) => re.test(p.info)) ?? ops[0]
-      const content = tag === 0x42 ? [] : [...ascii(p.info.replace(/^\S+ ?/, '')).slice(0, 60)]
-      const msgId = /bind/.test(p.info) ? 1 : /unbind/.test(p.info) ? 3 : 2
-      const op = [tag, ...berLen(content.length), ...content]
-      w.field('LDAPMessage (BER)', `${op.length + 3} bytes`, [0x30, ...berLen(op.length + 3)])
-      w.field('ID de mensaje', `${msgId}`, [0x02, 1, msgId])
-      w.field('Operación', name, op.slice(0, 1 + berLen(content.length).length))
-      if (content.length) w.field('Contenido', p.info.replace(/^\S+ ?/, ''), content)
+      if (/bindRequest/.test(p.info)) parts = [['Versión', 'LDAPv3', int(3)], ['Nombre (DN)', dn, str(dn)], ['Autenticación simple [0]', 'contraseña (en claro sin TLS)', tlv(0x80, ascii('secreto'))]]
+      else if (/bindResponse/.test(p.info)) [tag, name, parts] = [0x61, 'BindResponse', result]
+      else if (/searchRequest/.test(p.info))
+        [tag, name, parts] = [
+          0x63,
+          'SearchRequest',
+          [
+            ['Base', 'dc=ejemplo', str('dc=ejemplo')],
+            ['Ámbito', 'wholeSubtree (2)', enumv(2)],
+            ['Alias', 'neverDerefAliases (0)', enumv(0)],
+            ['Límites tamaño / tiempo', '0 / 0 (sin límite)', [...int(0), ...int(0)]],
+            ['Solo tipos', 'FALSE', tlv(0x01, [0])],
+            ['Filtro equalityMatch [3]', '(mail=david@ejemplo.com)', tlv(0xa3, [...str('mail'), ...str('david@ejemplo.com')])],
+            ['Atributos', 'cn, memberOf', tlv(0x30, [...str('cn'), ...str('memberOf')])],
+          ],
+        ]
+      else if (/searchResEntry/.test(p.info)) {
+        const attr = (k: string, v: string) => tlv(0x30, [...str(k), ...tlv(0x31, str(v))])
+        ;[tag, name, parts] = [
+          0x64,
+          'SearchResultEntry',
+          [
+            ['Objeto', dn, str(dn)],
+            ['Atributos', 'cn=david, memberOf=cn=ventas…', tlv(0x30, [...attr('cn', 'david'), ...attr('memberOf', 'cn=ventas,ou=grupos,dc=ejemplo')])],
+          ],
+        ]
+      } else if (/searchResDone/.test(p.info)) [tag, name, parts] = [0x65, 'SearchResultDone', result]
+      else [tag, name, parts] = [0x42, 'UnbindRequest', []]
+      const msgId = /bind/i.test(p.info) && !/unbind/.test(p.info) ? 1 : /unbind/.test(p.info) ? 3 : 2
+      const opContent = parts.flatMap(([, , b]) => b)
+      const opHeader = [tag, ...len(opContent.length)]
+      const idBytes = int(msgId)
+      const total = idBytes.length + opHeader.length + opContent.length
+      w.field('LDAPMessage: SEQUENCE', `${total} bytes`, [0x30, ...len(total)])
+      w.field('ID de mensaje', `${msgId}`, idBytes)
+      w.field('Operación', `${name} [APPLICATION ${tag & 0x1f}]`, opHeader)
+      for (const [n, v, b] of parts) w.field(n, v, b)
       return true
     }
     case 'RADIUS': {
@@ -528,6 +617,125 @@ function morePayload(w: Writer, p: Packet): boolean {
       const body = noise(seed, init ? 120 : 140)
       w.field('Longitud', `${28 + body.length}`, u32(28 + body.length))
       w.field(init ? 'SA, KE, Nonce' : 'Cargas cifradas (IDi, AUTH, SA, TS)', init ? 'propuestas + clave DH' : 'ilegibles sin la clave', body)
+      return true
+    }
+    case 'Traceroute': {
+      w.field('Datos de la sonda', '32 bytes (relleno)', Array.from({ length: 32 }, (_, i) => 0x40 + i))
+      return true
+    }
+    case 'HTTP/2': {
+      const frame = (type: number, flags: number, stream: number, payload: number[], label: string, desc: string) => {
+        w.field(`Trama ${label}: cabecera`, `longitud ${payload.length}, tipo ${type}, flags ${hex2(flags, 2)}, stream ${stream}`, [0, ...u16(payload.length), type, flags, ...u32(stream)])
+        if (payload.length) w.field(`Trama ${label}: carga`, desc, payload)
+      }
+      const settings = [...u16(3), ...u32(100), ...u16(4), ...u32(6291456)]
+      if (/Prefacio/.test(p.info)) {
+        w.field('Prefacio de conexión', '"PRI * HTTP/2.0\\r\\n\\r\\nSM\\r\\n\\r\\n"', ascii('PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n'))
+        frame(4, 0, 0, settings, 'SETTINGS', 'MAX_CONCURRENT_STREAMS=100, INITIAL_WINDOW_SIZE=6 MiB')
+      } else if (/^SETTINGS/.test(p.info)) {
+        frame(4, 0, 0, [...u16(3), ...u32(128)], 'SETTINGS', 'MAX_CONCURRENT_STREAMS=128')
+        frame(4, 1, 0, [], 'SETTINGS (ACK)', '')
+      } else if (/HEADERS stream (\d): GET/.test(p.info)) {
+        const stream = Number(p.info.match(/stream (\d)/)![1])
+        const path = stream === 1 ? [0x84] : [0x44, 11, ...ascii('/estilo.css')]
+        const hpack = [0x82, 0x87, ...path, 0x41, 15, ...ascii('www.ejemplo.com')]
+        frame(1, 0x05, stream, hpack, 'HEADERS', `HPACK: :method GET (0x82), :scheme https (0x87), :path ${stream === 1 ? '/ (0x84)' : '/estilo.css'}, :authority`)
+      } else {
+        const stream = Number(p.info.match(/stream (\d)/)![1])
+        const css = stream === 3
+        const hpack = [0x88, 0x5f, css ? 8 : 9, ...ascii(css ? 'text/css' : 'text/html')]
+        frame(1, 0x04, stream, hpack, 'HEADERS', `HPACK: :status 200 (0x88), content-type ${css ? 'text/css' : 'text/html'}`)
+        const body = ascii(css ? 'body{font-family:monospace;margin:0}…' : '<!doctype html><html lang="es">…')
+        frame(0, 0x01, stream, body, 'DATA', `END_STREAM, ${css ? 'CSS' : 'HTML'}`)
+      }
+      return true
+    }
+    case 'Kerberos': {
+      const len = (n: number) => (n < 128 ? [n] : [0x82, n >> 8, n & 0xff])
+      const tlv = (tag: number, c: number[]) => [tag, ...len(c.length), ...c]
+      const gstr = (t: string) => tlv(0x1b, ascii(t))
+      const kind: [RegExp, number, number, string][] = [
+        [/KRB-ERROR/, 0x7e, 30, 'KRB-ERROR'],
+        [/AS-REQ/, 0x6a, 10, 'AS-REQ'],
+        [/AS-REP/, 0x6b, 11, 'AS-REP'],
+        [/TGS-REQ/, 0x6c, 12, 'TGS-REQ'],
+        [/TGS-REP/, 0x6d, 13, 'TGS-REP'],
+      ]
+      const [, app, mt, name] = kind.find(([re]) => re.test(p.info))!
+      const realm = 'EJEMPLO.LOCAL'
+      const parts: [string, string, number[]][] = [
+        ['pvno', '5', tlv(0xa1, tlv(0x02, [5]))],
+        ['msg-type', `${mt} (${name})`, tlv(0xa2, tlv(0x02, [mt]))],
+      ]
+      if (mt === 30) parts.push(['error-code', '25 (KDC_ERR_PREAUTH_REQUIRED)', tlv(0xa6, tlv(0x02, [25]))], ['realm', realm, tlv(0xa9, gstr(realm))])
+      else if (mt === 10 || mt === 12) {
+        if (/PA-ENC/.test(p.info) || mt === 12) parts.push(['padata', mt === 12 ? 'PA-TGS-REQ (incluye el TGT)' : 'PA-ENC-TIMESTAMP (hora cifrada)', tlv(0xa3, noise(seed, mt === 12 ? 120 : 60))])
+        parts.push(['req-body: realm', realm, tlv(0xa7, gstr(realm))])
+        parts.push(['req-body: sname', mt === 10 ? `krbtgt/${realm}` : 'cifs/servidor.ejemplo.local', tlv(0xa8, gstr(mt === 10 ? `krbtgt/${realm}` : 'cifs/servidor.ejemplo.local'))])
+        parts.push(['req-body: etype', 'AES256-CTS-HMAC-SHA1 (18)', tlv(0xab, tlv(0x30, tlv(0x02, [18])))])
+      } else {
+        parts.push(['crealm / cname', `${realm} / david`, [...tlv(0xa3, gstr(realm)), ...tlv(0xa4, gstr('david'))]])
+        parts.push(['ticket', mt === 11 ? `TGT para krbtgt/${realm} (cifrado con la clave del KDC)` : 'ticket para cifs/servidor (cifrado con la clave del servicio)', tlv(0xa5, noise(seed + 't', 140))])
+        parts.push(['enc-part', 'clave de sesión, cifrada para el cliente', tlv(0xa6, noise(seed + 'e', 100))])
+      }
+      const content = parts.flatMap(([, , b]) => b)
+      const seq = tlv(0x30, content)
+      w.field(`${name} [APPLICATION ${mt}]`, `${seq.length} bytes`, [app, ...len(seq.length)])
+      w.field('SEQUENCE', `${content.length} bytes`, seq.slice(0, seq.length - content.length))
+      for (const [n, v, b] of parts) w.field(n, v, b)
+      return true
+    }
+    case 'TFTP': {
+      if (/RRQ/.test(p.info)) {
+        w.field('Opcode', 'RRQ, petición de lectura (1)', u16(1))
+        w.field('Archivo', '"firmware.bin"', [...ascii('firmware.bin'), 0])
+        w.field('Modo', '"octet" (binario)', [...ascii('octet'), 0])
+      } else if (/DATA/.test(p.info)) {
+        const block = Number(p.info.match(/bloque (\d+)/)![1])
+        const n = Number(p.info.match(/\((\d+) bytes\)/)![1])
+        w.field('Opcode', 'DATA (3)', u16(3))
+        w.field('Bloque', `${block}`, u16(block))
+        w.field('Datos', `${n} bytes${n < 512 ? ' (último bloque)' : ''}`, noise(seed, n))
+      } else {
+        const block = Number(p.info.match(/bloque (\d+)/)![1])
+        w.field('Opcode', 'ACK (4)', u16(4))
+        w.field('Bloque', `${block}`, u16(block))
+      }
+      return true
+    }
+    case 'Telnet': {
+      if (/IAC/.test(p.info)) {
+        w.field('IAC WILL ECHO', '0xff 0xfb 0x01', [0xff, 0xfb, 0x01])
+        w.field('IAC WILL SUPPRESS-GO-AHEAD', '0xff 0xfb 0x03', [0xff, 0xfb, 0x03])
+        w.field('IAC DO TERMINAL-TYPE', '0xff 0xfd 0x18', [0xff, 0xfd, 0x18])
+      } else {
+        const raw = p.info.match(/"(.*)"/)![1]
+        const text = raw.replace(/\\r/g, '\r').replace(/\\n/g, '\n')
+        w.field('Texto en claro', `"${raw}"`, ascii(text))
+      }
+      return true
+    }
+    case 'CoAP': {
+      const type = /^CON/.test(p.info) ? 0 : /^NON/.test(p.info) ? 1 : 2
+      const isGet = /GET/.test(p.info)
+      const observe = /Observe/.test(p.info)
+      const value = p.info.match(/"(.+)"/)?.[1]
+      const mid = 0x4a10 + Math.round(p.t)
+      w.field('Versión / tipo / TKL', `1 / ${['CON', 'NON', 'ACK'][type]} / token de 2 bytes`, [0x40 | (type << 4) | 2])
+      w.field('Código', isGet ? '0.01 GET' : '2.05 Content', [isGet ? 0x01 : 0x45])
+      w.field('ID de mensaje', hex2(mid), u16(mid))
+      w.field('Token', '0x71a3', [0x71, 0xa3])
+      // options in ascending number: Observe (6), Uri-Path (11), Content-Format (12)
+      let last = 0
+      const opt = (num: number, val: number[]) => {
+        const b = [((num - last) << 4) | val.length, ...val]
+        last = num
+        return b
+      }
+      if (observe) w.field('Opción Observe (6)', isGet ? 'registrar (0)' : 'secuencia 1', opt(6, isGet ? [] : [1]))
+      if (isGet) w.field('Opción Uri-Path (11)', '"temp"', opt(11, ascii('temp')))
+      else w.field('Opción Content-Format (12)', 'text/plain (0)', opt(12, []))
+      if (value) w.field('Carga', `0xff + "${value}"`, [0xff, ...ascii(value)])
       return true
     }
     default:
@@ -571,8 +779,68 @@ function ipPayload(w: Writer, p: Packet) {
   }
 }
 
+/** Bluetooth LE link-layer packet (no Ethernet: pcap link type 251). */
+function bleFrame(w: Writer, p: Packet) {
+  const seed = p.info + p.t
+  const adv = /ADV_IND|SCAN_|CONNECT_IND/.test(p.info)
+  const bandMac = [0x91, 0x2e, 0x0a, 0x51, 0x7f, 0xc4] // c4:7f:51:0a:2e:91, little-endian on air
+  const phoneMac = [0x3c, 0x5a, 0x10, 0xb2, 0x7e, 0x6a]
+  const le16 = (n: number) => [n & 0xff, (n >> 8) & 0xff]
+  w.begin('eth', 'BLE Link Layer')
+  w.field('Access Address', adv ? '0x8e89bed6 (canal de anuncios)' : '0x50654c3a (conexión)', adv ? [0xd6, 0xbe, 0x89, 0x8e] : [0x3a, 0x4c, 0x65, 0x50])
+  if (adv) {
+    const types: [RegExp, number, string][] = [
+      [/ADV_IND/, 0, 'ADV_IND'],
+      [/SCAN_REQ/, 3, 'SCAN_REQ'],
+      [/SCAN_RSP/, 4, 'SCAN_RSP'],
+      [/CONNECT_IND/, 5, 'CONNECT_IND'],
+    ]
+    const [, t, tname] = types.find(([re]) => re.test(p.info))!
+    let payload: [string, string, number[]][] = []
+    if (t === 0)
+      payload = [
+        ['AdvA', 'c4:7f:51:0a:2e:91 (pulsera)', bandMac],
+        ['AD: Flags', 'LE General Discoverable, sin BR/EDR', [2, 1, 6]],
+        ['AD: nombre completo', '"Pulsera"', [8, 9, ...ascii('Pulsera')]],
+        ['AD: servicios 16 bits', '0x180D (frecuencia cardiaca)', [3, 3, 0x0d, 0x18]],
+      ]
+    else if (t === 3) payload = [['ScanA', '6a:7e:b2:10:5a:3c (móvil)', phoneMac], ['AdvA', 'c4:7f:51:0a:2e:91', bandMac]]
+    else if (t === 4) payload = [['AdvA', 'c4:7f:51:0a:2e:91', bandMac], ['AD: fabricante', 'datos del fabricante', [7, 0xff, 0x59, 0x00, ...noise(seed, 4)]], ['AD: potencia TX', '0 dBm', [2, 0x0a, 0]]]
+    else
+      payload = [
+        ['InitA / AdvA', 'móvil → pulsera', [...phoneMac, ...bandMac]],
+        ['LLData: dirección de acceso + CRC init', '0x50654c3a', [0x3a, 0x4c, 0x65, 0x50, ...noise(seed, 3)]],
+        ['LLData: ventana, intervalo, latencia, timeout', 'intervalo 30 ms (24 × 1,25 ms)', [2, ...le16(5), ...le16(24), ...le16(0), ...le16(400)]],
+        ['LLData: mapa de canales, salto, SCA', '37 canales de datos', [0xff, 0xff, 0xff, 0xff, 0x1f, 0x2f]],
+      ]
+    const len = payload.reduce((n, [, , b]) => n + b.length, 0)
+    w.field('Cabecera PDU', `${tname} (${t}), TxAdd aleatoria, longitud ${len}`, [t | 0x40, len])
+    w.end()
+    w.begin('app', tname)
+    for (const [n, v, b] of payload) w.field(n, v, b)
+  } else {
+    let att: number[]
+    let attDesc: string
+    if (/Read Request/.test(p.info)) [att, attDesc] = [[0x0a, ...le16(0x002a)], 'Read Request (0x0a), handle 0x002a']
+    else if (/Read Response/.test(p.info)) [att, attDesc] = [[0x0b, 0x02], 'Read Response (0x0b): 2 = muñeca']
+    else [att, attDesc] = [[0x1b, ...le16(0x0027), 0x00, 72], 'Handle Value Notification (0x1b), handle 0x0027: 72 lpm']
+    w.field('Cabecera de datos', `LLID 2 (inicio L2CAP), longitud ${att.length + 4}`, [0x02, att.length + 4])
+    w.end()
+    w.begin('app', 'L2CAP + ATT')
+    w.field('L2CAP: longitud', `${att.length}`, le16(att.length))
+    w.field('L2CAP: canal', '0x0004 (ATT)', le16(4))
+    w.field('ATT', attDesc, att)
+  }
+  w.field('CRC', '24 bits', noise(seed + 'crc', 3))
+  w.end()
+}
+
 /** Builds a pure layer-2 frame (802.11, EAPOL, PPPoE, STP). */
-function l2Frame(w: Writer, p: Packet) {
+function l2Frame(w: Writer, p: Packet): number {
+  if (p.proto === 'BLE') {
+    bleFrame(w, p)
+    return 251
+  }
   const seed = p.info + p.t
   const wifi = p.proto === '802.11' || (p.proto === 'EAPOL' && (p.from === 'ap' || p.to === 'ap'))
   const apMac = macOf('ap')
@@ -703,9 +971,9 @@ function l2Frame(w: Writer, p: Packet) {
       const proto = /LCP/.test(p.info) ? 0xc021 : /CHAP/.test(p.info) ? 0xc223 : 0x8021
       const pname = proto === 0xc021 ? 'LCP' : proto === 0xc223 ? 'CHAP' : 'IPCP'
       const code = /Success/.test(p.info) ? 3 : /Response/.test(p.info) ? 2 : /Ack/.test(p.info) ? 2 : 1
-      const opt = proto === 0xc021 ? [1, 4, ...u16(1492)] : proto === 0x8021 ? [3, 6, ...ipBytes('198.51.100.37')] : proto === 0xc223 && code === 2 ? [16, ...noise(seed, 16), ...ascii('usuario@isp')] : []
+      const opt = proto === 0xc021 ? [1, 4, ...u16(1492), 5, 6, ...u32(0x5f3a91c2)] : proto === 0x8021 ? [3, 6, ...ipBytes('198.51.100.37')] : proto === 0xc223 && code === 2 ? [16, ...noise(seed, 16), ...ascii('usuario@isp')] : []
       payload = [...u16(proto), code, 1, ...u16(4 + opt.length), ...opt]
-      desc = `${pname}: ${p.info.replace(/^\S+ /, '')}`
+      desc = `${pname}: ${p.info.replace(/^\S+ /, '')}${proto === 0xc021 ? ', Magic-Number 0x5f3a91c2' : proto === 0xc223 && code === 2 ? ' (valor MD5 de 16 bytes + nombre)' : ''}`
     }
     w.field('Versión / tipo', '1 / 1', [0x11])
     w.field('Código', disc ? `${disc[2]} (${hex2(disc[1], 2)})` : 'sesión (0x00)', [disc ? disc[1] : 0])
@@ -727,6 +995,7 @@ function l2Frame(w: Writer, p: Packet) {
     w.field('Longitud v1', '0', [0])
   }
   w.end()
+  return wifi ? 105 : 1
 }
 
 // ── IPv6 helpers ──────────────────────────────────────────────────────────
@@ -757,13 +1026,14 @@ function icmp6Body(p: Packet, srcMac: number[]): { type: number; name: string; b
 // ── frame builder ─────────────────────────────────────────────────────────
 const isSwitch = (n: NodeId) => n === 'switch' || n === 'switch2'
 
-export function decodePacket(p: Packet): Frame {
+export function decodePacket(p: Packet, opts: { full?: boolean } = {}): Frame {
   const w = new Writer()
+  const finish = (w: Writer, headerEnd: number, linktype = 1) => finishFrame(w, opts.full ? Infinity : headerEnd, linktype)
   const tr = TRANSPORT[p.proto] ?? TRANSPORT.HTTP
 
   if (tr.kind === 'l2') {
-    l2Frame(w, p)
-    return finish(w, w.bytes.length)
+    const linktype = l2Frame(w, p)
+    return finish(w, w.bytes.length, linktype)
   }
 
   // Frames relayed by switches keep the end hosts' addresses
@@ -852,7 +1122,7 @@ export function decodePacket(p: Packet): Frame {
   const ipStart = w.pos()
   const protoNum = tr.kind === 'tcp' ? 6 : tr.kind === 'udp' ? 17 : tr.kind === 'ip' ? tr.num : 1
   const protoTxt = tr.kind === 'tcp' ? 'TCP (6)' : tr.kind === 'udp' ? 'UDP (17)' : tr.kind === 'ip' ? tr.label : 'ICMP (1)'
-  const ttl = tr.kind === 'ip' && p.proto !== 'ESP' ? 1 : 64
+  const ttl = p.ttl ?? (tr.kind === 'ip' && p.proto !== 'ESP' ? 1 : 64)
   w.begin('ip', 'IPv4')
   w.field('Versión / IHL', '4 / 20 bytes', [0x45])
   w.field('DSCP / ECN', p.proto === 'OSPF' ? 'CS6 (control de red)' : '0', [p.proto === 'OSPF' ? 0xc0 : 0])
@@ -864,7 +1134,7 @@ export function decodePacket(p: Packet): Frame {
     const v = (frag!.mf ? 0x2000 : 0) | (frag!.off / 8)
     w.field('Flags / fragmento', `${frag!.mf ? 'MF (más fragmentos)' : 'último fragmento'}, desplazamiento ${frag!.off}`, u16(v))
   } else w.field('Flags / fragmento', 'DF (no fragmentar)', [0x40, 0])
-  w.field('TTL', ttl === 1 ? '1 (solo el enlace local)' : '64', [ttl])
+  w.field('TTL', p.ttl ? `${ttl} (sonda de traceroute)` : ttl === 1 ? '1 (solo el enlace local)' : '64', [ttl])
   w.field('Protocolo', protoTxt, [protoNum])
   const ipCkAt = w.pos()
   w.field('Checksum', '', [0, 0])
@@ -896,7 +1166,8 @@ export function decodePacket(p: Packet): Frame {
   const clientPort = 'clientPort' in tr && tr.clientPort ? tr.clientPort : 52344
   const serverPort = tr.kind === 'tcp' || tr.kind === 'udp' ? tr.port : 0
   const sport = ports ? Number(ports[1]) : fromClient ? clientPort : serverPort
-  const dport = ports ? Number(ports[2]) : fromClient ? serverPort : clientPort
+  const probe = p.proto === 'Traceroute' ? Number(p.info.match(/→ (\d+)/)?.[1]) : 0
+  const dport = ports ? Number(ports[2]) : probe || (fromClient ? serverPort : clientPort)
   let l4CkAt = -1
   let udpLenAt = -1
 
@@ -928,16 +1199,35 @@ export function decodePacket(p: Packet): Frame {
     w.field('Checksum', '', [0, 0])
     w.end()
   } else {
-    const reply = p.kind === 'res'
-    const seq = Number(p.info.match(/seq=(\d+)/)?.[1] ?? 1)
+    const exceeded = /Time Exceeded/.test(p.info)
+    const unreachable = /Unreachable/.test(p.info)
     w.begin('icmp', 'ICMP')
-    w.field('Tipo', reply ? 'Echo Reply (0)' : 'Echo Request (8)', [reply ? 0 : 8])
-    w.field('Código', '0', [0])
-    l4CkAt = w.pos()
-    w.field('Checksum', '', [0, 0])
-    w.field('Identificador', '1', u16(1))
-    w.field('Secuencia', `${seq}`, u16(seq))
-    w.field('Datos', '56 bytes de relleno', Array.from({ length: 56 }, (_, i) => (i + 0x10) & 0xff))
+    if (exceeded || unreachable) {
+      // error messages quote the offending IP header + first 8 bytes of the probe
+      const hopTtl = exceeded ? 1 : 1
+      const probePort = 33434 + (p.from === 'router' ? 0 : p.from === 'access' ? 1 : 2)
+      const inner = [0x45, 0, ...u16(60), ...u16(0x2b00 + probePort), 0, 0, hopTtl, 17, 0, 0, ...ipBytes(ipOf('client')), ...ipBytes(ipOf('web'))]
+      const ick = checksum(inner)
+      inner[10] = ick >> 8
+      inner[11] = ick & 0xff
+      w.field('Tipo', exceeded ? 'Time Exceeded (11)' : 'Destination Unreachable (3)', [exceeded ? 11 : 3])
+      w.field('Código', exceeded ? 'TTL agotado en tránsito (0)' : 'puerto inalcanzable (3)', [exceeded ? 0 : 3])
+      l4CkAt = w.pos()
+      w.field('Checksum', '', [0, 0])
+      w.field('Sin usar', '0', [0, 0, 0, 0])
+      w.field('Cabecera IP original', `${ipOf('client')} → ${ipOf('web')}, TTL ${hopTtl}`, inner)
+      w.field('8 bytes de la sonda', `UDP 52800 → ${probePort}`, [...u16(52800), ...u16(probePort), ...u16(40), 0, 0])
+    } else {
+      const reply = p.kind === 'res'
+      const seq = Number(p.info.match(/seq=(\d+)/)?.[1] ?? 1)
+      w.field('Tipo', reply ? 'Echo Reply (0)' : 'Echo Request (8)', [reply ? 0 : 8])
+      w.field('Código', '0', [0])
+      l4CkAt = w.pos()
+      w.field('Checksum', '', [0, 0])
+      w.field('Identificador', '1', u16(1))
+      w.field('Secuencia', `${seq}`, u16(seq))
+      w.field('Datos', '56 bytes de relleno', Array.from({ length: 56 }, (_, i) => (i + 0x10) & 0xff))
+    }
     w.end()
   }
   const l4Layer = w.layers[w.layers.length - 1]
@@ -990,7 +1280,7 @@ function patchIp(w: Writer, ipStart: number, lenAt: number, ipCkAt: number, ipLa
 }
 
 /** Keep the dump readable: show at most MAX_PAYLOAD bytes past `headerEnd`. */
-function finish(w: Writer, headerEnd: number): Frame {
+function finishFrame(w: Writer, headerEnd: number, linktype: number): Frame {
   const limit = headerEnd + MAX_PAYLOAD
   const truncated = Math.max(0, w.pos() - limit)
   const bytes = Uint8Array.from(w.bytes.slice(0, limit))
@@ -998,5 +1288,5 @@ function finish(w: Writer, headerEnd: number): Frame {
     l.fields = l.fields.filter((f) => f.start < limit).map((f) => ({ ...f, len: Math.min(f.len, limit - f.start) }))
     l.len = Math.min(l.len, limit - l.start)
   }
-  return { bytes, layers: w.layers, truncated }
+  return { bytes, layers: w.layers, truncated, linktype }
 }

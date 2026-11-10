@@ -1,8 +1,9 @@
-import { CircleCheck, X } from 'lucide-react'
+import { CircleCheck, Route, X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
 import { QUIZ } from '../data/quiz'
 import { isDone, type Progress } from '../lib/progress'
+import { TOUR } from '../data/tour'
 import { Button } from './ui/Button'
 
 interface Props {
@@ -64,6 +65,13 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
           </Button>
         </div>
       )}
+
+      <div className="border-b border-line p-3">
+        <Button variant="primary" className="w-full" onClick={() => onSelect(TOUR[0].id)}>
+          <Route aria-hidden className="size-4" />
+          Empezar el recorrido guiado ({TOUR.length} lecciones)
+        </Button>
+      </div>
 
       <nav aria-label="Lista de protocolos" className="p-2">
         {layers.map((l) => (

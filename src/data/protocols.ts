@@ -1,5 +1,6 @@
 import { tcpHandshake } from './helpers'
 import { MORE_PROTOCOLS } from './more'
+import { MORE_PROTOCOLS_2 } from './more2'
 
 export type NodeId =
   | 'client'
@@ -36,6 +37,7 @@ export type NodeId =
   | 'iot'
   | 'broker'
   | 'core'
+  | 'ble'
 
 export type NodeKind = 'laptop' | 'router' | 'switch' | 'printer' | 'cloud' | 'server' | 'phone' | 'camera' | 'wifi' | 'chip'
 
@@ -72,7 +74,7 @@ export const NODES: Record<NodeId, NetNode> = {
   camera: { id: 'camera', label: 'Cámara IP', addr: '192.168.1.64', kind: 'camera', x: 420, y: 50 },
   plc: { id: 'plc', label: 'PLC industrial', addr: '192.168.1.80', kind: 'chip', x: 420, y: 130 },
   filesrv: { id: 'filesrv', label: 'Servidor de archivos', addr: '192.168.1.20', kind: 'server', x: 420, y: 210 },
-  dc: { id: 'dc', label: 'Servidor LDAP', addr: '192.168.1.15', kind: 'server', x: 420, y: 290 },
+  dc: { id: 'dc', label: 'Controlador de dominio', addr: '192.168.1.15', kind: 'server', x: 420, y: 290 },
   ingest: { id: 'ingest', label: 'Servidor de streaming', addr: '203.0.113.50', kind: 'server', x: 650, y: 310 },
   ap: { id: 'ap', label: 'Punto de acceso', addr: '192.168.1.2', kind: 'wifi', x: 250, y: 470 },
   radius: { id: 'radius', label: 'Servidor RADIUS', addr: '192.168.1.5', kind: 'server', x: 450, y: 470 },
@@ -83,6 +85,7 @@ export const NODES: Record<NodeId, NetNode> = {
   iot: { id: 'iot', label: 'Sensor IoT', addr: '192.168.1.70', kind: 'chip', x: 90, y: 560 },
   broker: { id: 'broker', label: 'Broker MQTT', addr: '198.51.100.90', kind: 'server', x: 650, y: 450 },
   core: { id: 'core', label: 'Router núcleo', addr: '10.0.0.2', kind: 'router', x: 480, y: 420 },
+  ble: { id: 'ble', label: 'Pulsera BLE', addr: 'c4:7f:51:0a:2e:91', kind: 'chip', x: 280, y: 560 },
 }
 
 /** Physical links of the diagram; packets travel along the shortest path. */
@@ -120,6 +123,7 @@ export const LINKS: [NodeId, NodeId][] = [
   ['iot', 'router'],
   ['internet', 'broker'],
   ['router', 'core'],
+  ['phone', 'ble'],
 ]
 
 export type PacketKind = 'dns' | 'tcp' | 'udp' | 'tls' | 'req' | 'res' | 'ctrl' | 'err'
@@ -135,6 +139,9 @@ export const KIND_META: Record<PacketKind, { label: string; color: string }> = {
   err: { label: 'Pérdida', color: '#ef4444' },
 }
 
+/** Theme-aware colour of a packet kind (darker in light theme for contrast). */
+export const kindColor = (k: PacketKind) => `var(--k-${k})`
+
 export interface Packet {
   t: number
   from: NodeId
@@ -147,6 +154,8 @@ export interface Packet {
   /** Overrides for addresses that aren't the node's own (multicast, IPv6, link-local…) */
   srcIp?: string
   dstIp?: string
+  /** IPv4 TTL override (traceroute probes) */
+  ttl?: number
 }
 
 export interface Protocol {
@@ -553,7 +562,7 @@ const BASE_PROTOCOLS: Protocol[] = [
   },
 ]
 
-export const PROTOCOLS: Protocol[] = [...BASE_PROTOCOLS, ...MORE_PROTOCOLS]
+export const PROTOCOLS: Protocol[] = [...BASE_PROTOCOLS, ...MORE_PROTOCOLS, ...MORE_PROTOCOLS_2]
 
 const routeCache = new Map<string, NodeId[]>()
 

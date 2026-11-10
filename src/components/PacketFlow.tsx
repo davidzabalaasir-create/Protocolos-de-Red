@@ -1,6 +1,7 @@
-import { Binary, ChevronLeft, Pause, Play, RotateCcw, StepForward } from 'lucide-react'
+import { Binary, ChevronLeft, Download, Pause, Play, RotateCcw, StepForward } from 'lucide-react'
 import { memo, useEffect, useRef, type Ref } from 'react'
-import { KIND_META, addrOf, type Packet, type Protocol } from '../data/protocols'
+import { KIND_META, kindColor, addrOf, type Packet, type Protocol } from '../data/protocols'
+import { downloadPcapng } from '../lib/pcap'
 import { Button } from './ui/Button'
 
 interface Props {
@@ -63,7 +64,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
         <ul aria-label="Leyenda" className="flex flex-wrap gap-3 text-xs">
           {kinds.map((k) => (
             <li key={k} className="flex items-center gap-1.5">
-              <span aria-hidden className="size-2.5 rounded-full" style={{ background: KIND_META[k].color }} />
+              <span aria-hidden className="size-2.5 rounded-full" style={{ background: kindColor(k) }} />
               {KIND_META[k].label}
             </li>
           ))}
@@ -99,6 +100,9 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
             </Button>
             <Button size="icon" variant="ghost" label="Reiniciar" shortcut="R" onClick={onReset} disabled={step < 0}>
               <RotateCcw aria-hidden className="size-4" />
+            </Button>
+            <Button size="icon" variant="ghost" label="Descargar la captura (.pcapng, se abre en Wireshark)" onClick={() => downloadPcapng(protocol)}>
+              <Download aria-hidden className="size-4" />
             </Button>
           </div>
         </div>
@@ -167,8 +171,8 @@ const Row = memo(function Row({ p, i, current, onStep, onInspect, rowRef }: { p:
             e.stopPropagation()
             onStep(i)
           }}
-          className="grid size-8 place-items-center rounded-full text-[11px] font-bold text-[#0b1020]"
-          style={{ background: KIND_META[p.kind].color }}
+          className="grid size-8 place-items-center rounded-full text-[11px] font-bold text-[var(--k-on)]"
+          style={{ background: kindColor(p.kind) }}
         >
           {i + 1}
           <span className="sr-only">: ir a este paquete</span>

@@ -186,4 +186,36 @@ export const QUIZ: Record<string, Question[]> = {
     { q: '¿Quién decide si un usuario entra en 802.1X?', options: ['El punto de acceso', 'El servidor RADIUS', 'El propio portátil'], answer: 1, why: 'El AP solo reenvía; RADIUS acepta o rechaza.' },
     { q: '¿Qué viaja entre el equipo y el AP?', options: ['EAPOL', 'SMTP', 'BGP'], answer: 0, why: 'EAP sobre LAN (EAPOL); del AP al servidor va dentro de RADIUS.' },
   ],
+  nat: [
+    { q: '¿Qué cambia el router en un paquete que sale con NAT?', options: ['La IP y el puerto de origen', 'El contenido HTTP', 'La MAC del servidor'], answer: 0, why: 'Sustituye la IP privada y el puerto por su IP pública y un puerto propio.' },
+    { q: '¿Cómo sabe el router a quién devolver la respuesta?', options: ['Por su tabla NAT', 'Preguntando por DNS', 'Por difusión'], answer: 0, why: 'La tabla asocia cada puerto público con la IP y el puerto privados.' },
+  ],
+  traceroute: [
+    { q: '¿Qué campo aprovecha traceroute?', options: ['El TTL', 'El checksum', 'La ventana TCP'], answer: 0, why: 'Envía sondas con TTL creciente y cada router que lo agota se delata.' },
+    { q: '¿Qué mensaje devuelve un router intermedio?', options: ['ICMP Time Exceeded', 'TCP RST', 'HTTP 404'], answer: 0, why: 'ICMP tipo 11: el TTL llegó a cero en tránsito.' },
+  ],
+  http2: [
+    { q: '¿Qué permite HTTP/2 frente a HTTP/1.1?', options: ['Varias peticiones a la vez en una conexión', 'Usar UDP', 'Quitar las cabeceras'], answer: 0, why: 'Cada petición va en su propio flujo dentro de la misma conexión.' },
+    { q: '¿Cómo se comprimen las cabeceras?', options: ['Con HPACK', 'Con ZIP', 'No se comprimen'], answer: 0, why: 'HPACK usa tablas de índices y codificación Huffman.' },
+  ],
+  kerberos: [
+    { q: '¿Qué entrega el KDC al iniciar sesión?', options: ['Un TGT (ticket maestro)', 'La contraseña cifrada', 'Una IP'], answer: 0, why: 'Con el TGT se piden después tickets para cada servicio.' },
+    { q: '¿Viaja la contraseña por la red en Kerberos?', options: ['Sí, en claro', 'No', 'Solo la primera vez'], answer: 1, why: 'Solo viajan datos cifrados con claves derivadas de ella.' },
+  ],
+  tftp: [
+    { q: '¿Cómo sabe el cliente TFTP que la transferencia ha terminado?', options: ['Llega un bloque de menos de 512 bytes', 'Por un FIN de TCP', 'Por un correo'], answer: 0, why: 'Un bloque más corto que 512 bytes marca el final.' },
+    { q: '¿Qué transporte usa TFTP?', options: ['UDP', 'TCP', 'ICMP'], answer: 0, why: 'UDP puerto 69, con sus propios ACK por bloque.' },
+  ],
+  telnet: [
+    { q: '¿Por qué no se debe usar Telnet?', options: ['Todo, incluida la contraseña, va sin cifrar', 'Es demasiado rápido', 'No funciona en routers'], answer: 0, why: 'Cualquiera en el camino puede leer la sesión: usa SSH.' },
+    { q: '¿Qué byte inicia una orden de negociación?', options: ['0xFF (IAC)', '0x00', '0x7F'], answer: 0, why: 'IAC, «Interpret As Command», precede a WILL, DO, etc.' },
+  ],
+  coap: [
+    { q: '¿A qué equivale el código CoAP 2.05?', options: ['A un 200 OK con contenido', 'A un 404', 'A un error'], answer: 0, why: '2.05 Content es la respuesta correcta con datos.' },
+    { q: '¿Qué hace la opción Observe?', options: ['Recibir avisos cuando cambia el recurso', 'Cifrar el mensaje', 'Borrar el recurso'], answer: 0, why: 'El servidor notifica cada cambio sin nuevas peticiones.' },
+  ],
+  ble: [
+    { q: '¿Cómo descubre el móvil una pulsera BLE?', options: ['Escuchando sus anuncios (ADV_IND)', 'Por DNS', 'Con un cable'], answer: 0, why: 'Los dispositivos se anuncian en los canales de publicidad.' },
+    { q: '¿Qué protocolo se usa para leer datos como el pulso?', options: ['ATT/GATT', 'SMTP', 'BGP'], answer: 0, why: 'Los datos son atributos GATT leídos o notificados mediante ATT.' },
+  ],
 }

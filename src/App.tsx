@@ -5,6 +5,7 @@ import { ProtocolDrawer } from './components/ProtocolDrawer'
 import { SidePanel, type PanelTab } from './components/SidePanel'
 import { Stage } from './components/Stage'
 import { Toolbar } from './components/Toolbar'
+import { TourBar } from './components/TourBar'
 import { PROTOCOLS } from './data/protocols'
 import { QUIZ } from './data/quiz'
 import { isDone, useProgress } from './lib/progress'
@@ -122,6 +123,7 @@ export default function App() {
 
       <main id="main" className="flex flex-1 flex-col gap-3 px-3 pb-3 sm:px-4">
         <h1 className="sr-only">Protocolos de Red: {protocol.name}</h1>
+        <TourBar currentId={protocol.id} onSelect={select} watched={progress.watched} />
         <div className="grid items-start gap-3 lg:grid-cols-[1fr_minmax(20rem,26rem)]">
           <Stage protocol={protocol} step={step} durationMs={STEP_MS / speed} />
           <SidePanel
