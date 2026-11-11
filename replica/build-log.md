@@ -11,4 +11,6 @@
 | Modo foco y pantalla completa | 2026-11-11 | hecho | La pantalla completa no está probada de forma automática | — |
 | Pruebas e2e | 2026-11-11 | hecho | Safari y Firefox | El navegador de pruebas arranca en inglés y la web cambia sola de idioma: se fija `locale: es-ES`. |
 
-Pendiente, por tamaño: 19 idiomas más (unos 1 300 textos cada uno), escritura de derecha a izquierda y lista lateral fija.
+Decisión del propietario (2026-11-11): solo español e inglés; no se añadirán más idiomas ni escritura de derecha a izquierda.
+
+Pendiente: ficha de datos por etapa y lista lateral fija.

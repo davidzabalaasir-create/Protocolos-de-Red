@@ -24,8 +24,8 @@ Lista de protocolos lateral que se puede ocultar,navegación,could,yes,partial,E
 Modo foco,navegación,could,yes,yes,Botón y tecla F; se recuerda
 Pantalla completa,navegación,could,yes,yes,
 Tema claro y oscuro recordado,ajustes,should,yes,yes,
-Selector de idioma (21 idiomas),ajustes,should,yes,partial,2 de 21 (español e inglés)
-Soporte de escritura de derecha a izquierda (árabe y hebreo),ajustes,could,yes,no,
+Selector de idioma (21 idiomas),ajustes,should,yes,skip,Decisión del propietario: solo español e inglés (ambos completos)
+Soporte de escritura de derecha a izquierda (árabe y hebreo),ajustes,could,yes,skip,No aplica: sin árabe ni hebreo por decisión del propietario
 Progreso guardado entre visitas,ajustes,should,yes,yes,
 Recordar vista y velocidad elegidas,ajustes,could,yes,yes,
 Atajos de teclado (espacio y flechas),accesibilidad,should,yes,yes,

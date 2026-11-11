@@ -6,7 +6,7 @@ Fecha: 2026-11-11 · Original: https://protocol-explorer-alpha.vercel.app/ · Cl
 
 | | |
 |---|---|
-| Funciones | **94,0 / 100** (32 funciones puntuadas; antes 78,4) |
+| Funciones | **97,3 / 100** (30 funciones puntuadas; antes 78,4) |
 | Imprescindibles | 6 de 6 hechas |
 | Diseño (capturas) | No medido: la captura automática se detuvo a mano |
 | Veredicto | **Mejor que el original**: listo para publicar (imprescindibles 6/6, funciones ≥ 80, sin fallos S1/S2 abiertos), y además añade quiz, capturas .pcapng, recorrido guiado y 15 protocolos más |
@@ -15,21 +15,20 @@ Fecha: 2026-11-11 · Original: https://protocol-explorer-alpha.vercel.app/ · Cl
 
 | Área | Puntuación |
 |---|---|
-| Ajustes | 75,0 |
 | Lecciones | 87,5 |
 | Navegación | 92,9 |
-| Diagrama, paquetes, inspector, panel, accesibilidad, acabado | 100 |
+| Diagrama, paquetes, inspector, panel, ajustes, accesibilidad, acabado | 100 |
 
 ## Qué falta, en orden de construcción
 
-1. [should] Idiomas: 2 de 21.
-2. [should] Etapas: hay etapas numeradas, pero sin ficha de datos propia por etapa.
-3. [could] Escritura de derecha a izquierda (árabe y hebreo), necesaria solo si se añaden esos idiomas.
-4. [could] Lista lateral fija que se puede ocultar (ahora es un panel desplegable).
+1. [should] Etapas: hay etapas numeradas, pero sin ficha de datos propia por etapa.
+2. [could] Lista lateral fija que se puede ocultar (ahora es un panel desplegable).
 
 Hecho en esta tanda: etapas numeradas con resumen final, proxy inverso, explicación ampliable en la tabla, notas en el diagrama, vista y velocidad recordadas, modo foco y pantalla completa.
 
-Fuera de la puntuación a propósito: las ilustraciones isométricas, que son la imagen propia del original.
+Fuera de la puntuación a propósito:
+- Las ilustraciones isométricas, que son la imagen propia del original.
+- Más idiomas y escritura de derecha a izquierda: decisión del propietario, la web es solo en español e inglés (ambos completos).
 
 ## Lo que el clon hace y el original no
 
@@ -49,10 +48,9 @@ Quiz por protocolo, descarga de cada lección en `.pcapng`, recorrido guiado, 15
 
 50 casos e2e (escritorio y móvil) y 961 pruebas unitarias; todo pasa. Se encontraron y corrigieron 2 fallos (S3 y S4); ver `bugs.md`.
 
-## Cinco cosas a construir ahora
+## Siguientes pasos
 
-1. Un tercer idioma (portugués o francés), reutilizando la estructura de la traducción al inglés.
-2. Ficha de datos por etapa (qué se consigue en cada una).
-3. Lista lateral fija y plegable en pantallas anchas.
-4. Pruebas en Firefox y Safari (WebKit) con el mismo conjunto de Playwright.
-5. Traducir al inglés los campos poco comunes del inspector.
+1. Ficha de datos por etapa (qué se consigue en cada una).
+2. Lista lateral fija y plegable en pantallas anchas.
+3. Pruebas en Firefox y Safari (WebKit) con el mismo conjunto de Playwright.
+4. Traducir al inglés los campos poco comunes del inspector, para que el inglés quede completo también ahí.
