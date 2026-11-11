@@ -37,6 +37,8 @@ Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de *
 - **Incrustar** cualquier lección en otra web con un `<iframe>` (`/dns/?embed=1`).
 - **Español e inglés**: botón ES/EN en la cabecera; se recuerda entre visitas y se elige solo según el idioma del navegador. El inspector de paquetes también está traducido entero.
 - **Funciona sin conexión**: tras la primera visita, un service worker guarda la web y todas las lecciones.
+- **Cuenta opcional** (Clerk): con «Iniciar sesión» el progreso se guarda en tu perfil y te sigue a cualquier dispositivo; sin cuenta todo sigue funcionando igual. Se carga en segundo plano y solo si el proyecto tiene `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`. Ver [/privacidad/](https://protocolos-de-red-eight.vercel.app/privacidad/).
+- **Subneteo** (`/subneteo/`): calculadora de subredes, reparto VLSM y ejercicios con solución paso a paso.
 - **Carga ligera**: el inspector, el decodificador, la descarga `.pcapng`, la comparación, el examen y el texto en inglés se descargan solo cuando se usan (~141 KB comprimidos en la primera carga, antes 197 KB).
 - **Instalable** como app en el móvil, con imagen para compartir en redes.
 - **Enlaces directos** por protocolo y paso: `/dns/`, `/tcp/#3`, `/#comparar=tcp,udp`, `/#examen`. Cada lección tiene su propia página pre-generada (título, descripción y contenido para buscadores) y hay `sitemap.xml`.
