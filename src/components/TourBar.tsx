@@ -34,7 +34,7 @@ export const TourBar = memo(function TourBar({ currentId, onSelect, watched }: P
         </p>
         <p className="text-sm text-muted">{t(TOUR[i].why)}</p>
       </div>
-      <ol aria-label={t('Lecciones del recorrido')} className="hidden gap-1 md:flex">
+      <ol aria-label={t('Lecciones del recorrido')} className="hidden md:flex">
         {TOUR.map((stop, k) => (
           <li key={stop.id}>
             <button
@@ -42,8 +42,12 @@ export const TourBar = memo(function TourBar({ currentId, onSelect, watched }: P
               onClick={() => onSelect(stop.id)}
               aria-current={k === i ? 'step' : undefined}
               title={nameOf(stop.id)}
-              className={`block size-3 rounded-full border border-line-strong aria-[current]:scale-125 aria-[current]:border-accent aria-[current]:bg-accent ${watched.includes(stop.id) ? 'bg-green-600 dark:bg-green-400' : 'bg-panel-2'}`}
+              className="group grid size-6 place-items-center rounded-full"
             >
+              <span
+                aria-hidden
+                className={`block size-3 rounded-full border border-line-strong group-aria-[current]:scale-125 group-aria-[current]:border-accent group-aria-[current]:bg-accent ${watched.includes(stop.id) ? 'bg-green-600 dark:bg-green-400' : 'bg-panel-2'}`}
+              />
               <span className="sr-only">
                 {k + 1}. {nameOf(stop.id)}
                 {watched.includes(stop.id) ? t(' (vista)') : ''}

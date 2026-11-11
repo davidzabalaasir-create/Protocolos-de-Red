@@ -17,7 +17,7 @@ import { EmbedFrame } from './components/EmbedFrame'
 import { PROTOCOLS } from './data/protocols'
 import { displayName, localize, useLang, useT } from './i18n'
 import { TOUR } from './data/tour'
-import { QUIZ } from './data/quiz'
+import { QUIZ_COUNT } from './data/quiz-count'
 import { isDone, useProgress } from './lib/progress'
 
 type Theme = 'light' | 'dark'
@@ -172,6 +172,11 @@ export default function App() {
     setDrawer(false)
     setExam(true)
   }, [])
+  const hideSidebar = useCallback(() => setSidebar(false), [setSidebar])
+  const closeDrawer = useCallback(() => {
+    setDrawer(false)
+    setLayerFilter(null)
+  }, [])
   const onScore = useCallback((score: number) => setQuizScore(protocolId, score), [protocolId, setQuizScore])
   const openMenu = useCallback(() => {
     if (wide && !focus) setSidebar(!sidebar)
@@ -255,7 +260,7 @@ export default function App() {
 
       <div className="flex flex-1 items-start gap-3 px-3 pb-3 sm:px-4">
       {showSidebar && (
-        <ProtocolSidebar layer={layerFilter} currentId={protocol.id} progress={progress} onSelect={select} onLayer={setLayerFilter} onHide={() => setSidebar(false)} onExam={openExam} />
+        <ProtocolSidebar layer={layerFilter} currentId={protocol.id} progress={progress} onSelect={select} onLayer={setLayerFilter} onHide={hideSidebar} onExam={openExam} />
       )}
       <main id="main" className="flex min-w-0 flex-1 flex-col gap-3">
         <h1 className="sr-only">Protocolos de Red: {protocol.name}</h1>
@@ -268,7 +273,7 @@ export default function App() {
             step={step}
             tab={tab}
             onTab={setTab}
-            done={isDone(progress, protocol.id, QUIZ[protocol.id]?.length ?? 0)}
+            done={isDone(progress, protocol.id, QUIZ_COUNT[protocol.id] ?? 0)}
             bestScore={progress.quiz[protocol.id]}
             onScore={onScore}
             onSelect={select}
@@ -300,10 +305,7 @@ export default function App() {
         layer={layerFilter}
         currentId={protocol.id}
         progress={progress}
-        onClose={() => {
-          setDrawer(false)
-          setLayerFilter(null)
-        }}
+        onClose={closeDrawer}
         onSelect={select}
         onLayer={setLayerFilter}
         onExam={openExam}

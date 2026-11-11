@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# el CI solo lee el código; el token no necesita escribir nada en el repositorio
+permissions:
+  contents: read
+
 jobs:
   pruebas:
     runs-on: ubuntu-latest

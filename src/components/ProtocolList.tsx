@@ -1,6 +1,7 @@
 import { CircleCheck, GraduationCap, Network, Route } from 'lucide-react'
+import { memo } from 'react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
-import { QUIZ } from '../data/quiz'
+import { QUIZ_COUNT } from '../data/quiz-count'
 import { TOUR } from '../data/tour'
 import { displayName, fullName, useLang, useT } from '../i18n'
 import { isDone, type Progress } from '../lib/progress'
@@ -15,7 +16,7 @@ interface Props {
   onLayer: (layer: number | null) => void
 }
 
-export const doneCount = (progress: Progress) => PROTOCOLS.filter((p) => isDone(progress, p.id, QUIZ[p.id]?.length ?? 0)).length
+export const doneCount = (progress: Progress) => PROTOCOLS.filter((p) => isDone(progress, p.id, QUIZ_COUNT[p.id] ?? 0)).length
 
 /** Completion counter + bar, shared by the drawer and the sidebar. */
 export function ListProgress({ progress }: { progress: Progress }) {
@@ -32,7 +33,7 @@ export function ListProgress({ progress }: { progress: Progress }) {
 }
 
 /** Lessons grouped by OSI layer, with the layer filter and the guided-tour shortcut. */
-export function ProtocolList({ layer, currentId, progress, onSelect, onLayer, onExam }: Props) {
+export const ProtocolList = memo(function ProtocolList({ layer, currentId, progress, onSelect, onLayer, onExam }: Props) {
   const t = useT()
   const lang = useLang()
   const layers = [7, 6, 5, 4, 3, 2, 1].filter((l) => (layer === null || l === layer) && PROTOCOLS.some((p) => p.layer === l))
@@ -79,15 +80,15 @@ export function ProtocolList({ layer, currentId, progress, onSelect, onLayer, on
                     type="button"
                     aria-current={p.id === currentId ? 'true' : undefined}
                     onClick={() => onSelect(p.id)}
-                    className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 text-left hover:bg-panel-2 aria-[current]:bg-accent aria-[current]:text-accent-fg"
+                    className="group flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 text-left hover:bg-panel-2 aria-[current]:bg-accent aria-[current]:text-accent-fg"
                   >
                     <span className="flex items-center gap-2 font-bold">
                       {displayName(lang, p)}
-                      {isDone(progress, p.id, QUIZ[p.id]?.length ?? 0) && (
+                      {isDone(progress, p.id, QUIZ_COUNT[p.id] ?? 0) && (
                         <CircleCheck aria-label={t('completado')} className="size-4 text-green-700 aria-[current]:text-current dark:text-green-400" />
                       )}
                     </span>
-                    <span className="truncate text-xs opacity-80">{fullName(lang, p)}</span>
+                    <span className="truncate text-xs text-muted group-aria-[current]:text-accent-fg">{fullName(lang, p)}</span>
                   </button>
                 </li>
               ))}
@@ -98,4 +99,4 @@ export function ProtocolList({ layer, currentId, progress, onSelect, onLayer, on
       </nav>
     </>
   )
-}
+})
