@@ -1,4 +1,5 @@
 import { Camera, Cloud, Cpu, Laptop, Network, Phone, Printer, Router, Server, Tv, Wifi, Workflow, type LucideIcon } from 'lucide-react'
+import { CAMERA_MS, packetTiming } from '../lib/timing'
 import { Focus, Maximize, Minimize, Minimize2 } from 'lucide-react'
 import { Button } from './ui/Button'
 import { StageStrip } from './StageStrip'
@@ -78,7 +79,7 @@ const toAttr = (b: Box) => `${b.x} ${b.y} ${b.w} ${b.h}`
 interface Props {
   protocol: Protocol
   step: number
-  durationMs: number
+  speed: number
   onStep: (i: number) => void
   onReplay: () => void
   onQuiz: () => void
@@ -97,7 +98,7 @@ const savedView = (): 'net' | 'seq' => {
   }
 }
 
-export const Stage = memo(function Stage({ protocol, step, durationMs, onStep, onReplay, onQuiz, next, onNext, focus, onFocus }: Props) {
+export const Stage = memo(function Stage({ protocol, step, speed, onStep, onReplay, onQuiz, next, onNext, focus, onFocus }: Props) {
   const t = useT()
   const lang = useLang()
   const [view, setViewState] = useState<'net' | 'seq'>(savedView)
@@ -179,7 +180,7 @@ export const Stage = memo(function Stage({ protocol, step, durationMs, onStep, o
 
       <div id="stage-panel" role="tabpanel" aria-labelledby={`tab-${view}`} className="flex-1 px-2 pb-3">
         {view === 'net' ? (
-          <NetworkDiagram protocol={protocol} packet={packet} step={step} durationMs={durationMs} summary={summary} />
+          <NetworkDiagram protocol={protocol} packet={packet} step={step} speed={speed} summary={summary} />
         ) : (
           <SequenceDiagram protocol={protocol} step={step} summary={summary} />
         )}
@@ -201,16 +202,27 @@ export const Stage = memo(function Stage({ protocol, step, durationMs, onStep, o
 })
 
 /** Static topology: only re-renders when the protocol or the highlighted route changes, never per frame. */
-const Topology = memo(function Topology({ visible, revealed, links, delays, active, flow, color }: { visible: Set<NodeId>; revealed: Set<NodeId>; links: Set<string>; delays: Map<NodeId, number>; active: Set<NodeId>; flow: Map<string, 1 | -1>; color: string }) {
+const Topology = memo(function Topology({ visible, revealed, links, delays, active, flow, segOf, stepKey, color }: { visible: Set<NodeId>; revealed: Set<NodeId>; links: Set<string>; delays: Map<NodeId, number>; active: Set<NodeId>; flow: Map<string, 1 | -1>; segOf: Map<string, number>; stepKey: number; color: string }) {
   const lang = useLang()
   return (
     <>
       {LINKS.filter(([a, b]) => visible.has(a) && visible.has(b)).map(([a, b]) => {
         const dir = flow.get(a + b)
         const on = dir !== undefined
+        const seg = segOf.get(a + b)
+        // arrowhead near the far end of the hop, pointing the way the packet travels
+        const [from, to] = dir === -1 ? [NODES[b], NODES[a]] : [NODES[a], NODES[b]]
+        const ang = (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI
+        const len = Math.hypot(to.x - from.x, to.y - from.y)
+        const ax = from.x + ((to.x - from.x) * (len - 42)) / len
+        const ay = from.y + ((to.y - from.y) * (len - 42)) / len
         return (
+          <g key={on ? `${a + b}-${stepKey}` : a + b}>
+          {on && (
+            <polygon className="net-arrow" data-seg={seg} points="0,-5.5 11,0 0,5.5" fill={color} transform={`translate(${ax} ${ay}) rotate(${ang})`} aria-hidden />
+          )}
           <line
-            key={a + b}
+            data-seg={on ? seg : undefined}
             className={`net-lane${on ? (dir === 1 ? ' is-flowing' : ' is-flowing is-reverse') : ''}`}
             data-hidden={links.has(a + b) || links.has(b + a) ? undefined : ''}
             x1={NODES[a].x}
@@ -221,6 +233,7 @@ const Topology = memo(function Topology({ visible, revealed, links, delays, acti
             strokeWidth={on ? 2.6 : 1.6}
             strokeDasharray="6 5"
           />
+          </g>
         )
       })}
       {[...visible].map((id) => {
@@ -248,7 +261,7 @@ const Topology = memo(function Topology({ visible, revealed, links, delays, acti
 
 const EMPTY = new Set<NodeId>()
 
-function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { protocol: Protocol; packet: Packet | null; step: number; durationMs: number; summary: string }) {
+function NetworkDiagram({ protocol, packet, step, speed, summary }: { protocol: Protocol; packet: Packet | null; step: number; speed: number; summary: string }) {
   const reduced = usePrefersReducedMotion()
   const visible = nodesFor(protocol)
   const full = useMemo(() => boxFor(visible), [visible])
@@ -263,6 +276,15 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
     })
     return m
   }, [path])
+  const segOf = useMemo(() => {
+    const m = new Map<string, number>()
+    path?.slice(1).forEach((v, i) => {
+      const u = path[i]
+      m.set(u + v, i)
+      m.set(v + u, i)
+    })
+    return m
+  }, [path])
   const color = packet ? kindColor(packet.kind) : ''
 
   const dotRef = useRef<SVGGElement>(null)
@@ -273,38 +295,75 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
   useLayoutEffect(() => {
     const g = dotRef.current
     if (!g || !path) return
-    const at = makePath(path.map((id) => NODES[id]))
+    const pts = path.map((id) => NODES[id])
+    const at = makePath(pts)
+    // where each hop starts, as a fraction of the whole trip
+    const lens = pts.slice(1).map((b, i) => Math.hypot(b.x - pts[i].x, b.y - pts[i].y))
+    const totalLen = lens.reduce((a, b) => a + b, 0) || 1
+    const starts = lens.map((_, i) => lens.slice(0, i).reduce((a, b) => a + b, 0) / totalLen)
+    const svg = g.ownerSVGElement
+    let dimTimer = 0
+    const dimLater = () => {
+      dimTimer = window.setTimeout(() => svg?.querySelectorAll<SVGElement>('[data-seg]').forEach((el) => el.removeAttribute('data-lit')), 900)
+    }
+    const light = (t: number) => {
+      const reached = starts.filter((s0) => t >= s0 - 0.001).length - 1
+      svg?.querySelectorAll<SVGElement>('[data-seg]').forEach((el) => {
+        if (Number(el.dataset.seg) <= reached) el.setAttribute('data-lit', '')
+        else el.removeAttribute('data-lit')
+      })
+    }
     const place = (t: number) => {
       const p = at(t)
       g.setAttribute('transform', `translate(${p.x} ${p.y})`)
+      light(t)
     }
     setArrived(false)
     if (reduced) {
+      g.removeAttribute('opacity')
       place(1)
       setArrived(true)
       return
     }
-    const ms = Math.min(durationMs * 0.8, 900)
-    const start = performance.now()
+    const timing = packetTiming(protocol, step)
+    const delay = timing.delay / speed
+    const ms = timing.travel / speed
+    const start = performance.now() + delay
     let raf = 0
+    let fallback = 0
     const tick = (now: number) => {
+      if (now < start) {
+        raf = requestAnimationFrame(tick)
+        return
+      }
+      g.removeAttribute('opacity')
       const t = Math.min((now - start) / ms, 1)
       place(t)
       if (t < 1) raf = requestAnimationFrame(tick)
-      else setArrived(true)
+      else {
+        setArrived(true)
+        clearTimeout(fallback)
+        dimLater()
+      }
     }
+    // waiting for the camera: the tag is not on the wire yet
+    g.setAttribute('opacity', delay > 0 ? '0' : '1')
     place(0)
+    if (delay > 0) svg?.querySelectorAll<SVGElement>('[data-seg]').forEach((el) => el.removeAttribute('data-lit'))
     raf = requestAnimationFrame(tick)
-    const fallback = window.setTimeout(() => {
+    fallback = window.setTimeout(() => {
       cancelAnimationFrame(raf)
+      g.removeAttribute('opacity')
       place(1)
       setArrived(true)
-    }, ms + 250)
+      dimLater()
+    }, delay + ms + 250)
     return () => {
       cancelAnimationFrame(raf)
       clearTimeout(fallback)
+      clearTimeout(dimTimer)
     }
-  }, [path, step, durationMs, reduced])
+  }, [path, step, speed, reduced, protocol])
 
   // ── Camera: close-up on the first sender, zoom out to the whole network, then frame each packet's path ──
   const svgRef = useRef<SVGSVGElement>(null)
@@ -392,7 +451,7 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
     const isNewLesson = shownProtocol.current !== protocol.id
     shownProtocol.current = protocol.id
     if (reduced || isNewLesson) set(target)
-    else animate(target, 1100)
+    else animate(target, CAMERA_MS / speed)
     return () => {
       cancelAnimationFrame(camRaf.current)
       clearTimeout(camFallback.current)
@@ -403,16 +462,17 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
 
   return (
     <svg ref={svgRef} role="img" aria-label={summary} className="h-full max-h-[460px] w-full">
-      <Topology visible={visible} revealed={revealed} links={links} delays={delays} active={active} flow={flow} color={color} />
+      <Topology visible={visible} revealed={revealed} links={links} delays={delays} active={active} flow={flow} segOf={segOf} stepKey={step} color={color} />
       {packet && (
         <g ref={dotRef} aria-hidden style={{ willChange: 'transform' }}>
-          <PacketTag packet={packet} color={color} lost={lost && arrived} />
+          <PacketTag packet={packet} color={color} lost={lost && arrived} arrived={arrived && !lost} />
         </g>
       )}
       {packet && arrived && !lost && (
         <circle key={`pulse-${step}`} className="net-pulse" cx={NODES[packet.to].x} cy={NODES[packet.to].y} r={34} fill="none" stroke={color} strokeWidth={2.5} aria-hidden />
       )}
       <MilestoneNotes protocol={protocol} step={step} />
+      {urlBar?.loaded && arrived && <LoadedPage />}
       {urlBar && <UrlBar x={NODES.client.x} y={NODES.client.y} text={urlBar.text} secure={urlBar.secure} typing={urlBar.typing} loaded={urlBar.loaded} />}
     </svg>
   )
@@ -488,7 +548,7 @@ function tagLabel(p: Packet) {
   return (word && word.length <= 12 ? `${p.proto === word ? '' : p.proto + ' '}${word}` : p.proto).toUpperCase()
 }
 
-function PacketTag({ packet, color, lost }: { packet: Packet; color: string; lost: boolean }) {
+function PacketTag({ packet, color, lost, arrived }: { packet: Packet; color: string; lost: boolean; arrived: boolean }) {
   const label = tagLabel(packet)
   const field = (packet.display ?? packet.info).replace(/\s+/g, ' ')
   const short = field.length > 30 ? field.slice(0, 29) + '…' : field
@@ -496,7 +556,7 @@ function PacketTag({ packet, color, lost }: { packet: Packet; color: string; los
   const tagW = label.length * 8.2 + (locked ? 36 : 22)
   const bodyW = Math.max(tagW, short.length * 6.9 + 18)
   return (
-    <g className={lost ? 'net-tag is-lost' : 'net-tag'}>
+    <g className={`net-tag${lost ? ' is-lost' : ''}${arrived ? ' is-arrived' : ''}`}>
       <rect x={-bodyW / 2} y={11} width={bodyW} height={22} rx={3} fill="var(--panel)" stroke={color} strokeWidth={1.5} />
       <text x={0} y={26} textAnchor="middle" fontSize="11.5" fontWeight="600" fill="var(--fg)">
         {short}
@@ -575,6 +635,21 @@ function MilestoneNotes({ protocol, step }: { protocol: Protocol; step: number }
           </g>
         )
       })}
+    </g>
+  )
+}
+
+/** The page appearing on the laptop's screen once the last response has arrived. */
+function LoadedPage() {
+  const { x, y } = NODES.client
+  // the Lucide laptop is drawn 32 px wide at (x-16, y-16): its screen spans roughly x-10…x+10, y-9…y+4
+  return (
+    <g className="net-page" aria-hidden>
+      <rect x={x - 10} y={y - 9.5} width={20} height={13.5} rx={1} fill="var(--panel)" />
+      <rect x={x - 8.5} y={y - 8} width={17} height={3} rx={0.5} fill="var(--accent)" />
+      <rect x={x - 8.5} y={y - 3.5} width={12} height={1.6} rx={0.5} fill="var(--muted)" />
+      <rect x={x - 8.5} y={y - 0.8} width={15} height={1.6} rx={0.5} fill="var(--muted)" />
+      <rect x={x + 4} y={y - 3.5} width={4.5} height={4.4} rx={0.5} fill="var(--k-tcp)" />
     </g>
   )
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { packetTiming } from './lib/timing'
 import { Header } from './components/Header'
 import { PacketFlow } from './components/PacketFlow'
 import { ProtocolDrawer, ProtocolSidebar } from './components/ProtocolDrawer'
@@ -29,7 +30,6 @@ const safeSet = (k: string, v: string) => {
     /* ignore */
   }
 }
-const STEP_MS = 1400
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>(() => (document.documentElement.dataset.theme as Theme) ?? 'dark')
@@ -102,9 +102,9 @@ export default function App() {
       setPlaying(false)
       return
     }
-    const id = setTimeout(() => setStep((s) => s + 1), step < 0 ? 50 : STEP_MS / speed)
+    const id = setTimeout(() => setStep((s) => s + 1), step < 0 ? 50 : packetTiming(protocol, step).total / speed)
     return () => clearTimeout(id)
-  }, [playing, step, last, speed])
+  }, [playing, step, last, speed, protocol])
 
   const select = useCallback((id: string) => {
     setProtocolId(id)
@@ -209,7 +209,7 @@ export default function App() {
         <h1 className="sr-only">Protocolos de Red: {protocol.name}</h1>
         <TourBar currentId={protocol.id} onSelect={select} watched={progress.watched} />
         <div className={`grid items-start gap-3 ${focus ? '' : 'lg:grid-cols-[1fr_minmax(20rem,26rem)]'}`}>
-          <Stage protocol={protocol} step={step} durationMs={STEP_MS / speed} onStep={goTo} onReplay={replay} onQuiz={openQuiz} next={next} onNext={select} focus={focus} onFocus={toggleFocus} />
+          <Stage protocol={protocol} step={step} speed={speed} onStep={goTo} onReplay={replay} onQuiz={openQuiz} next={next} onNext={select} focus={focus} onFocus={toggleFocus} />
           {!focus && (
           <SidePanel
             protocol={protocol}

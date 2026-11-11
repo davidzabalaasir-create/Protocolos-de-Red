@@ -36,3 +36,8 @@ Quiz por protocolo,extras,could,no,yes,Propio del clon
 Descarga de la captura en .pcapng,extras,could,no,yes,Propio del clon
 Recorrido guiado,extras,could,no,yes,Propio del clon
 23 protocolos que el original no tiene,extras,could,no,yes,NAT traceroute HTTP/2 Kerberos TFTP Telnet CoAP BLE ARP MQTT SNMP LDAP OSPF VLAN STP 802.1X mDNS SSDP LLDP VRRP RIP GRE Syslog Wake-on-LAN
+La cámara reencuadra antes de que salga el paquete,transición,should,yes,yes,El paquete espera a que termine el encuadre cuando aparecen equipos nuevos
+Enlaces que se iluminan tramo a tramo con flecha de dirección,transición,should,yes,yes,Y vuelven a quedar tenues tras la llegada
+La etiqueta desaparece al llegar,transición,could,yes,yes,Tras el pulso de llegada
+Ritmo según la longitud de la ruta,transición,could,yes,yes,Viaje proporcional a los saltos y pausa entre paquetes; la reproducción sigue ese ritmo
+Página cargada en la pantalla del portátil al final,transición,could,yes,yes,En las lecciones web

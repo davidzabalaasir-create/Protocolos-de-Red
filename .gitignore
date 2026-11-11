@@ -26,3 +26,8 @@ dist-ssr
 # Playwright
 e2e-report
 test-results
+
+# Capturas de referencia del original (contienen la ventana del usuario): nunca se publican
+replica/screens/
+replica/clone-screens/
+replica/diffs/

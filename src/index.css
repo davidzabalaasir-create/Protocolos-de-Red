@@ -131,6 +131,34 @@ body {
     transform: scale(1.6);
   }
 }
+/* hop-by-hop: a hop of the current path stays dim until the packet reaches it */
+.net-lane[data-seg]:not([data-lit]) {
+  stroke: var(--line-strong);
+  stroke-width: 1.6;
+  animation: none;
+}
+.net-arrow {
+  transition: opacity 0.2s ease;
+}
+.net-arrow:not([data-lit]) {
+  opacity: 0;
+}
+/* the tag leaves the stage once it has arrived */
+.net-tag {
+  transition: opacity 0.35s ease;
+}
+.net-tag.is-arrived {
+  opacity: 0;
+  transition-delay: 0.45s;
+}
+.net-page {
+  animation: page-in 0.5s ease-out 0.2s both;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
 .net-tag.is-lost {
   opacity: 0.55;
 }
