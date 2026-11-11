@@ -1,4 +1,5 @@
-import { Camera, Cloud, Cpu, Laptop, Network, Phone, Printer, Router, Server, Tv, Wifi, Workflow, type LucideIcon } from 'lucide-react'
+import { Network, Workflow } from 'lucide-react'
+import { IsoDevice } from './IsoDevice'
 import { CAMERA_MS, packetTiming } from '../lib/timing'
 import { Focus, Maximize, Minimize, Minimize2 } from 'lucide-react'
 import { Button } from './ui/Button'
@@ -8,21 +9,8 @@ import { LessonOutro } from './LessonOutro'
 import { stagesFor } from '../lib/stages'
 import { nodeLabel, useLang, useT } from '../i18n'
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { kindColor, LINKS, NODES, addrOf, nodesFor, route, type NodeId, type NodeKind, type Packet, type Protocol } from '../data/protocols'
+import { kindColor, LINKS, NODES, addrOf, nodesFor, route, type NodeId, type Packet, type Protocol } from '../data/protocols'
 
-const ICONS: Record<NodeKind, LucideIcon> = {
-  laptop: Laptop,
-  router: Router,
-  switch: Network,
-  printer: Printer,
-  cloud: Cloud,
-  server: Server,
-  phone: Phone,
-  camera: Camera,
-  wifi: Wifi,
-  chip: Cpu,
-  screen: Tv,
-}
 
 const motionQuery = typeof window !== 'undefined' ? matchMedia('(prefers-reduced-motion: reduce)') : null
 const subscribeMotion = (cb: () => void) => {
@@ -202,7 +190,7 @@ export const Stage = memo(function Stage({ protocol, step, speed, onStep, onRepl
 })
 
 /** Static topology: only re-renders when the protocol or the highlighted route changes, never per frame. */
-const Topology = memo(function Topology({ visible, revealed, links, delays, active, flow, segOf, stepKey, color }: { visible: Set<NodeId>; revealed: Set<NodeId>; links: Set<string>; delays: Map<NodeId, number>; active: Set<NodeId>; flow: Map<string, 1 | -1>; segOf: Map<string, number>; stepKey: number; color: string }) {
+const Topology = memo(function Topology({ visible, revealed, links, delays, active, flow, segOf, stepKey, color, pageLoaded }: { visible: Set<NodeId>; revealed: Set<NodeId>; links: Set<string>; delays: Map<NodeId, number>; active: Set<NodeId>; flow: Map<string, 1 | -1>; segOf: Map<string, number>; stepKey: number; color: string; pageLoaded: boolean }) {
   const lang = useLang()
   return (
     <>
@@ -238,12 +226,10 @@ const Topology = memo(function Topology({ visible, revealed, links, delays, acti
       })}
       {[...visible].map((id) => {
         const n = NODES[id]
-        const Icon = ICONS[n.kind]
         const on = active.has(id)
         return (
           <g key={id} aria-hidden className="net-node" data-hidden={revealed.has(id) ? undefined : ''} style={{ transitionDelay: `${delays.get(id) ?? 0}ms` }}>
-            <rect x={n.x - 30} y={n.y - 30} width={60} height={60} rx={10} fill="var(--panel-2)" stroke={on ? color : 'var(--line)'} strokeWidth={on ? 2.5 : 1.5} />
-            <Icon x={n.x - 16} y={n.y - 16} width={32} height={32} color="var(--fg)" strokeWidth={1.5} />
+            <IsoDevice kind={n.kind} x={n.x} y={n.y} active={on} stroke={on ? color : 'var(--iso-line)'} page={id === 'client' && pageLoaded} />
             <text x={n.x} y={n.y + 50} textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--fg)">
               {nodeLabel(lang, n.id, n.label)}
             </text>
@@ -462,7 +448,7 @@ function NetworkDiagram({ protocol, packet, step, speed, summary }: { protocol: 
 
   return (
     <svg ref={svgRef} role="img" aria-label={summary} className="h-full max-h-[460px] w-full">
-      <Topology visible={visible} revealed={revealed} links={links} delays={delays} active={active} flow={flow} segOf={segOf} stepKey={step} color={color} />
+      <Topology visible={visible} revealed={revealed} links={links} delays={delays} active={active} flow={flow} segOf={segOf} stepKey={step} color={color} pageLoaded={!!urlBar?.loaded && arrived} />
       {packet && (
         <g ref={dotRef} aria-hidden style={{ willChange: 'transform' }}>
           <PacketTag packet={packet} color={color} lost={lost && arrived} arrived={arrived && !lost} />
@@ -472,7 +458,6 @@ function NetworkDiagram({ protocol, packet, step, speed, summary }: { protocol: 
         <circle key={`pulse-${step}`} className="net-pulse" cx={NODES[packet.to].x} cy={NODES[packet.to].y} r={34} fill="none" stroke={color} strokeWidth={2.5} aria-hidden />
       )}
       <MilestoneNotes protocol={protocol} step={step} />
-      {urlBar?.loaded && arrived && <LoadedPage />}
       {urlBar && <UrlBar x={NODES.client.x} y={NODES.client.y} text={urlBar.text} secure={urlBar.secure} typing={urlBar.typing} loaded={urlBar.loaded} />}
     </svg>
   )
@@ -639,17 +624,3 @@ function MilestoneNotes({ protocol, step }: { protocol: Protocol; step: number }
   )
 }
 
-/** The page appearing on the laptop's screen once the last response has arrived. */
-function LoadedPage() {
-  const { x, y } = NODES.client
-  // the Lucide laptop is drawn 32 px wide at (x-16, y-16): its screen spans roughly x-10…x+10, y-9…y+4
-  return (
-    <g className="net-page" aria-hidden>
-      <rect x={x - 10} y={y - 9.5} width={20} height={13.5} rx={1} fill="var(--panel)" />
-      <rect x={x - 8.5} y={y - 8} width={17} height={3} rx={0.5} fill="var(--accent)" />
-      <rect x={x - 8.5} y={y - 3.5} width={12} height={1.6} rx={0.5} fill="var(--muted)" />
-      <rect x={x - 8.5} y={y - 0.8} width={15} height={1.6} rx={0.5} fill="var(--muted)" />
-      <rect x={x + 4} y={y - 3.5} width={4.5} height={4.4} rx={0.5} fill="var(--k-tcp)" />
-    </g>
-  )
-}

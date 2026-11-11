@@ -22,6 +22,14 @@
   --k-ctrl: #475569;
   --k-err: #b91c1c;
   --k-on: #ffffff;
+  --iso-top: #ffffff;
+  --iso-left: #e6edfb;
+  --iso-right: #d3def5;
+  --iso-accent-top: #dbe6ff;
+  --iso-screen: #eef3ff;
+  --iso-paper: #ffffff;
+  --iso-line: #2a55c9;
+  --iso-shadow: rgb(29 78 216 / 0.08);
 }
 
 [data-theme='dark'] {
@@ -44,6 +52,14 @@
   --k-ctrl: #94a3b8;
   --k-err: #ef4444;
   --k-on: #0b1020;
+  --iso-top: #18254d;
+  --iso-left: #111b3a;
+  --iso-right: #0c1430;
+  --iso-accent-top: #1f3478;
+  --iso-screen: #0a1028;
+  --iso-paper: #dfe8ff;
+  --iso-line: #6f93ff;
+  --iso-shadow: rgb(111 147 255 / 0.1);
 }
 
 @theme inline {
@@ -131,6 +147,33 @@ body {
     transform: scale(1.6);
   }
 }
+/* isometric devices */
+.iso .iso-detail {
+  opacity: 0.55;
+}
+.iso-shadow {
+  opacity: 0.9;
+}
+.iso.is-active .iso-shadow {
+  opacity: 0.18;
+}
+.iso.is-active .iso-led {
+  animation: led-blink 0.5s steps(2) infinite;
+}
+.iso.is-active .iso-wave {
+  animation: wave 1.2s ease-out infinite;
+}
+@keyframes led-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes wave {
+  50% {
+    opacity: 0.35;
+  }
+}
+
 /* hop-by-hop: a hop of the current path stays dim until the packet reaches it */
 .net-lane[data-seg]:not([data-lit]) {
   stroke: var(--line-strong);

@@ -8,7 +8,7 @@ Enlaces discontinuos que fluyen en la dirección del paquete,diagrama,could,yes,
 Barra de dirección que escribe la URL,diagrama,could,yes,yes,
 Paquete perdido marcado en el diagrama,diagrama,could,yes,yes,
 Notas sobre el diagrama (CONECTADO y similares),diagrama,could,yes,yes,IP resuelta / conectado / cifrado / cerrado
-Ilustraciones isométricas de equipos,diagrama,could,yes,skip,Aspecto propio del original (trade dress); el clon usa iconos Lucide a propósito
+Ilustraciones isométricas de equipos,diagrama,could,yes,yes,Juego propio dibujado desde cero en SVG (11 equipos); no se copia el arte del original
 Vista de secuencia,diagrama,should,yes,yes,
 Tabla de paquetes (n.º tiempo origen destino protocolo info tamaño),paquetes,must,yes,yes,
 Reproducir pausar paso y reiniciar,paquetes,must,yes,yes,
