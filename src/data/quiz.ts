@@ -218,6 +218,38 @@ export const QUIZ: Record<string, Question[]> = {
     { q: '¿Quién presenta el certificado TLS en una web con proxy inverso?', options: ['El proxy inverso', 'El servidor de aplicaciones', 'El navegador'], answer: 0, why: 'El proxy guarda la clave y termina el TLS; los servidores internos no lo ven.' },
     { q: '¿Para qué sirve la cabecera X-Forwarded-For?', options: ['Para indicar la IP del visitante original', 'Para cifrar la petición', 'Para elegir el idioma'], answer: 0, why: 'Sin ella, el servidor interno solo vería la IP del proxy.' },
   ],
+  mdns: [
+    { q: '¿Quién responde a una consulta mDNS por «impresora.local»?', options: ['Un servidor DNS de Internet', 'La propia impresora', 'El router'], answer: 1, why: 'En mDNS cada equipo contesta por sus propios nombres.' },
+    { q: '¿A qué dirección se envían las consultas mDNS?', options: ['224.0.0.251', '8.8.8.8', '255.255.255.255'], answer: 0, why: 'Es el grupo multicast de mDNS en IPv4, puerto 5353.' },
+  ],
+  ssdp: [
+    { q: '¿Qué mensaje envía un dispositivo para buscar otros por SSDP?', options: ['M-SEARCH', 'GET', 'SYN'], answer: 0, why: 'M-SEARCH se envía por multidifusión a 239.255.255.250:1900.' },
+    { q: '¿Qué indica la cabecera LOCATION de la respuesta?', options: ['Dónde está el documento XML con la descripción', 'La ciudad del dispositivo', 'Su MAC'], answer: 0, why: 'El cliente descarga ese XML para conocer los servicios.' },
+  ],
+  lldp: [
+    { q: '¿Para qué sirve LLDP?', options: ['Para que los equipos se presenten a sus vecinos directos', 'Para asignar IP', 'Para cifrar tramas'], answer: 0, why: 'Cada equipo anuncia su nombre, puerto y capacidades al otro lado del cable.' },
+    { q: '¿LLDP cruza routers?', options: ['Sí', 'No, solo llega al vecino directo', 'Solo por la noche'], answer: 1, why: 'Va a una MAC reservada que los switches no reenvían.' },
+  ],
+  vrrp: [
+    { q: '¿Qué comparten los routers en VRRP?', options: ['Una IP virtual de puerta de enlace', 'La misma MAC física', 'El mismo cable'], answer: 0, why: 'Los equipos usan la IP virtual; la atiende el router maestro.' },
+    { q: '¿Cuándo toma el control el router de respaldo?', options: ['Cuando dejan de llegar los anuncios del maestro', 'Cada hora', 'Cuando lo pide el usuario'], answer: 0, why: 'Sin anuncios durante unos 3 intervalos, el respaldo pasa a maestro.' },
+  ],
+  rip: [
+    { q: '¿Qué mide la métrica de RIP?', options: ['Saltos hasta la red', 'El ancho de banda', 'La latencia'], answer: 0, why: 'RIP cuenta routers atravesados; 16 significa inalcanzable.' },
+    { q: '¿Cada cuánto envía RIP su tabla?', options: ['Cada 30 s', 'Cada hora', 'Solo al arrancar'], answer: 0, why: 'Envía la tabla completa cada 30 segundos.' },
+  ],
+  gre: [
+    { q: '¿Qué hace GRE con el paquete original?', options: ['Lo mete entero dentro de otro paquete IP', 'Lo cifra', 'Lo comprime'], answer: 0, why: 'GRE encapsula; para cifrar se combina con IPsec.' },
+    { q: '¿Qué número de protocolo IP usa GRE?', options: ['47', '6', '17'], answer: 0, why: 'IP protocolo 47; TCP es 6 y UDP 17.' },
+  ],
+  syslog: [
+    { q: '¿Qué indica el número entre < > al principio de un mensaje Syslog?', options: ['La prioridad: facility y gravedad', 'El puerto', 'El número de mensaje'], answer: 0, why: 'Prioridad = facility × 8 + gravedad.' },
+    { q: '¿Qué gravedad es más urgente?', options: ['0', '4', '7'], answer: 0, why: '0 es emergencia; 7 es depuración.' },
+  ],
+  wol: [
+    { q: '¿Qué contiene el paquete mágico?', options: ['6 bytes 0xFF y la MAC repetida 16 veces', 'Una contraseña', 'La IP del equipo'], answer: 0, why: 'La tarjeta de red reconoce ese patrón con su propia MAC.' },
+    { q: '¿Por qué se envía por difusión?', options: ['Porque el equipo apagado no tiene IP', 'Porque es más rápido', 'Por seguridad'], answer: 0, why: 'Sin IP ni tabla ARP, solo la difusión llega a su tarjeta.' },
+  ],
   ble: [
     { q: '¿Cómo descubre el móvil una pulsera BLE?', options: ['Escuchando sus anuncios (ADV_IND)', 'Por DNS', 'Con un cable'], answer: 0, why: 'Los dispositivos se anuncian en los canales de publicidad.' },
     { q: '¿Qué protocolo se usa para leer datos como el pulso?', options: ['ATT/GATT', 'SMTP', 'BGP'], answer: 0, why: 'Los datos son atributos GATT leídos o notificados mediante ATT.' },

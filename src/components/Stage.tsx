@@ -1,7 +1,8 @@
-import { Camera, Cloud, Cpu, Laptop, Network, Phone, Printer, Router, Server, Wifi, Workflow, type LucideIcon } from 'lucide-react'
+import { Camera, Cloud, Cpu, Laptop, Network, Phone, Printer, Router, Server, Tv, Wifi, Workflow, type LucideIcon } from 'lucide-react'
 import { Focus, Maximize, Minimize, Minimize2 } from 'lucide-react'
 import { Button } from './ui/Button'
 import { StageStrip } from './StageStrip'
+import { StageCard } from './StageCard'
 import { LessonOutro } from './LessonOutro'
 import { stagesFor } from '../lib/stages'
 import { nodeLabel, useLang, useT } from '../i18n'
@@ -19,6 +20,7 @@ const ICONS: Record<NodeKind, LucideIcon> = {
   camera: Camera,
   wifi: Wifi,
   chip: Cpu,
+  screen: Tv,
 }
 
 const motionQuery = typeof window !== 'undefined' ? matchMedia('(prefers-reduced-motion: reduce)') : null
@@ -54,7 +56,7 @@ function boxFor(ids: Iterable<NodeId>): Box {
   const ns = [...ids].map((id) => NODES[id])
   const minX = Math.min(...ns.map((n) => n.x)) - 90
   const maxX = Math.max(...ns.map((n) => n.x)) + 90
-  const minY = Math.min(...ns.map((n) => n.y)) - 50
+  const minY = Math.min(...ns.map((n) => n.y)) - 75
   const maxY = Math.max(...ns.map((n) => n.y)) + 80
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
 }
@@ -183,6 +185,7 @@ export const Stage = memo(function Stage({ protocol, step, durationMs, onStep, o
         )}
       </div>
 
+      {packet && !isLast && <StageCard protocol={protocol} step={step} />}
       {packet && isLast && <LessonOutro protocol={protocol} onReplay={onReplay} onQuiz={onQuiz} next={next} onNext={onNext} />}
       {packet && (
         <p className="mx-3 mb-3 rounded-md border border-line bg-panel-2 p-3 text-sm leading-relaxed">

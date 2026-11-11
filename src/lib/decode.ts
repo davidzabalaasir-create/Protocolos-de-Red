@@ -176,6 +176,14 @@ const TRANSPORT: Record<string, Transport> = {
   Kerberos: { kind: 'udp', port: 88, clientPort: 50088 },
   TFTP: { kind: 'udp', port: 69, clientPort: 50069 },
   Telnet: { kind: 'tcp', port: 23 },
+  mDNS: { kind: 'udp', port: 5353, clientPort: 5353 },
+  SSDP: { kind: 'udp', port: 1900, clientPort: 50190 },
+  LLDP: { kind: 'l2' },
+  VRRP: { kind: 'ip', num: 112, label: 'VRRP (112)' },
+  RIP: { kind: 'udp', port: 520, clientPort: 520 },
+  GRE: { kind: 'ip', num: 47, label: 'GRE (47)' },
+  Syslog: { kind: 'udp', port: 514, clientPort: 50514 },
+  'Wake-on-LAN': { kind: 'udp', port: 9, clientPort: 50009 },
   CoAP: { kind: 'udp', port: 5683, clientPort: 50683 },
 }
 
@@ -185,28 +193,43 @@ const rank = (id: NodeId) => RANK[id] ?? 3
 
 // ── application payloads ──────────────────────────────────────────────────
 function dnsPayload(w: Writer, p: Packet, isResponse: boolean) {
-  // query and its response share the ID: derive it from the (unordered) pair of hosts
-  const id = hash([p.from, p.to].sort().join('-')) & 0xffff
+  const mdns = p.proto === 'mDNS'
+  // query and its response share the ID: derive it from the (unordered) pair of hosts (mDNS always uses 0)
+  const id = mdns ? 0 : hash([p.from, p.to].sort().join('-')) & 0xffff
   const answer = p.info.match(/A (\d+\.\d+\.\d+\.\d+)/)
-  w.field('ID de transacción', hex2(id), u16(id))
-  const flags = isResponse ? (answer ? 0x8180 : 0x8100) : 0x0100
-  w.field('Flags', `${hex2(flags)} (${isResponse ? 'respuesta' : 'consulta'}, recursión ${isResponse ? 'disponible' : 'deseada'})`, u16(flags))
-  w.field('Preguntas', '1', u16(1))
-  w.field('Respuestas', answer && isResponse ? '1' : '0', u16(answer && isResponse ? 1 : 0))
+  const ptr = /PTR/.test(p.info)
+  const hasAnswer = isResponse && (!!answer || ptr)
+  const name = p.info.match(/([\w-]+(?:\.[\w-]+)*\.local)\b/)?.[1] ?? 'www.ejemplo.com'
+  const encode = (n: string) => n.split('.').flatMap((l) => [l.length, ...ascii(l)]).concat(0)
+  w.field('ID de transacción', mdns ? '0 (mDNS)' : hex2(id), u16(id))
+  const flags = mdns ? (isResponse ? 0x8400 : 0) : isResponse ? (answer ? 0x8180 : 0x8100) : 0x0100
+  const flagText = mdns ? (isResponse ? 'respuesta autoritativa' : 'consulta') : `${isResponse ? 'respuesta' : 'consulta'}, recursión ${isResponse ? 'disponible' : 'deseada'}`
+  w.field('Flags', `${hex2(flags)} (${flagText})`, u16(flags))
+  w.field('Preguntas', mdns && isResponse ? '0' : '1', u16(mdns && isResponse ? 0 : 1))
+  w.field('Respuestas', hasAnswer ? '1' : '0', u16(hasAnswer ? 1 : 0))
   w.field('Autoridad', '0', u16(0))
   w.field('Adicionales', '0', u16(0))
-  const name = 'www.ejemplo.com'
-  const qname = name.split('.').flatMap((l) => [l.length, ...ascii(l)]).concat(0)
-  w.field('Nombre consultado', name, qname)
-  w.field('Tipo', 'A (1)', u16(1))
-  w.field('Clase', 'IN (1)', u16(1))
-  if (answer && isResponse) {
-    w.field('Nombre (puntero)', '0xc00c → www.ejemplo.com', u16(0xc00c))
-    w.field('Tipo / Clase', 'A / IN', [...u16(1), ...u16(1)])
-    const ttl = Number(p.info.match(/TTL=(\d+)/)?.[1] ?? 300)
+  const qtype = ptr ? 12 : 1
+  if (!(mdns && isResponse)) {
+    w.field('Nombre consultado', name, encode(name))
+    w.field('Tipo', ptr ? 'PTR (12)' : 'A (1)', u16(qtype))
+    w.field('Clase', mdns ? 'IN, respuesta multicast (1)' : 'IN (1)', u16(1))
+  }
+  if (hasAnswer) {
+    if (mdns && isResponse) w.field('Nombre', name, encode(name))
+    else w.field('Nombre (puntero)', `0xc00c → ${name}`, u16(0xc00c))
+    w.field('Tipo / Clase', `${ptr ? 'PTR' : 'A'} / IN${mdns ? ' (vaciar caché)' : ''}`, [...u16(qtype), ...u16(mdns ? 0x8001 : 1)])
+    const ttl = Number(p.info.match(/TTL=(\d+)/)?.[1] ?? (mdns ? 120 : 300))
     w.field('TTL', `${ttl} s`, u32(ttl))
-    w.field('Longitud', '4', u16(4))
-    w.field('Dirección', answer[1], ipBytes(answer[1]))
+    if (ptr) {
+      const target = p.info.match(/→ ([\w.-]+)/)?.[1] ?? 'impresora.local'
+      const rdata = encode(target)
+      w.field('Longitud', `${rdata.length}`, u16(rdata.length))
+      w.field('Apunta a', target, rdata)
+    } else {
+      w.field('Longitud', '4', u16(4))
+      w.field('Dirección', answer![1], ipBytes(answer![1]))
+    }
   }
 }
 
@@ -619,6 +642,32 @@ function morePayload(w: Writer, p: Packet): boolean {
       w.field(init ? 'SA, KE, Nonce' : 'Cargas cifradas (IDi, AUTH, SA, TS)', init ? 'propuestas + clave DH' : 'ilegibles sin la clave', body)
       return true
     }
+    case 'RIP': {
+      const request = /Petición/.test(p.info)
+      w.field('Orden', request ? 'petición (1)' : 'respuesta (2)', [request ? 1 : 2])
+      w.field('Versión', 'RIPv2', [2])
+      w.field('Reservado', '0', [0, 0])
+      if (request) {
+        w.field('Entrada: tabla completa', 'familia 0, métrica 16 = «envíame todo»', [0, 0, 0, 0, ...Array(12).fill(0), ...u32(16)])
+      } else {
+        const m = p.info.match(/(\d+\.\d+\.\d+\.\d+)\/(\d+) métrica (\d+)/)!
+        const bits = Number(m[2])
+        const mask = bits ? (0xffffffff << (32 - bits)) >>> 0 : 0
+        const metric = Number(m[3])
+        w.field('Familia / etiqueta', 'IPv4 (2) / 0', [0, 2, 0, 0])
+        w.field('Red', m[1], ipBytes(m[1]))
+        w.field('Máscara', `/${bits}`, u32(mask))
+        w.field('Siguiente salto', '0.0.0.0 (el propio emisor)', [0, 0, 0, 0])
+        w.field('Métrica', metric >= 16 ? '16 (inalcanzable)' : `${metric} salto${metric === 1 ? '' : 's'}`, u32(metric))
+      }
+      return true
+    }
+    case 'Wake-on-LAN': {
+      const mac = macOf(p.to)
+      w.field('Sincronización', '6 × 0xFF', Array(6).fill(0xff))
+      w.field('MAC destino × 16', `${fmtMac(mac)} repetida 16 veces`, Array.from({ length: 16 }, () => mac).flat())
+      return true
+    }
     case 'Traceroute': {
       w.field('Datos de la sonda', '32 bytes (relleno)', Array.from({ length: 32 }, (_, i) => 0x40 + i))
       return true
@@ -770,6 +819,30 @@ function ipPayload(w: Writer, p: Packet) {
     w.field('Área', '0.0.0.0 (troncal)', [0, 0, 0, 0])
     w.field('Checksum / autenticación', 'sin autenticación', [...noise(seed + 'ck', 2), 0, 0, ...Array(8).fill(0)])
     w.field(type === 1 ? 'Hello: máscara, intervalos, DR, vecinos' : 'LSA', type === 1 ? 'máscara /24, hello 10 s, dead 40 s' : names[type], body)
+  } else if (p.proto === 'VRRP') {
+    const prio = Number(p.info.match(/prioridad (\d+)/)?.[1] ?? 100)
+    const msg = [0x31, 1, prio, 1, 0x00, 100, 0, 0, ...ipBytes('192.168.1.254')]
+    const ck = checksum(msg)
+    w.field('Versión / tipo', 'VRRPv3 / anuncio (0x31)', [0x31])
+    w.field('ID de router virtual', '1', [1])
+    w.field('Prioridad', `${prio}${prio === 255 ? ' (dueño)' : ''}`, [prio])
+    w.field('Nº de direcciones', '1', [1])
+    w.field('Intervalo de anuncio', '100 cs (1 s)', [0x00, 100])
+    w.field('Checksum', hex2(ck), u16(ck))
+    w.field('IP virtual', '192.168.1.254', ipBytes('192.168.1.254'))
+  } else if (p.proto === 'GRE') {
+    const keepalive = /keepalive/.test(p.info)
+    w.field('Flags / versión', 'sin checksum ni clave / 0', [0, 0])
+    w.field('Protocolo transportado', 'IPv4 (0x0800)', [0x08, 0x00])
+    if (!keepalive) {
+      const ips = p.info.match(/(\d+\.\d+\.\d+\.\d+) → (\d+\.\d+\.\d+\.\d+)/)!
+      const inner = [0x45, 0, ...u16(84), ...u16(0x3a11), 0x40, 0, 63, 1, 0, 0, ...ipBytes(ips[1]), ...ipBytes(ips[2])]
+      const ick = checksum(inner)
+      inner[10] = ick >> 8
+      inner[11] = ick & 0xff
+      w.field('Paquete IPv4 interior', `${ips[1]} → ${ips[2]}, ICMP`, inner)
+      w.field('ICMP interior', /respuesta/.test(p.info) ? 'Echo Reply' : 'Echo Request', [/respuesta/.test(p.info) ? 0 : 8, 0, ...noise(seed, 2), 0, 1, 0, 1, ...noise(seed + 'd', 56)])
+    } else w.field('Keepalive', 'cabecera GRE de vuelta hacia el emisor', [0x45, 0, 0, 24, ...noise(seed, 16)])
   } else if (p.proto === 'ESP') {
     const spi = Number('0x' + (p.info.match(/SPI=0x([0-9a-f]+)/)?.[1] ?? '1'))
     w.field('SPI', hex2(spi, 8), u32(spi))
@@ -835,11 +908,36 @@ function bleFrame(w: Writer, p: Packet) {
   w.end()
 }
 
+/** LLDP: a list of type-length-value records announcing who sends it and from which port. */
+function lldpFrame(w: Writer, p: Packet) {
+  const sys = p.info.match(/sistema=(\S+)/)?.[1] ?? 'switch'
+  const port = p.info.match(/puerto=(\S+)/)?.[1] ?? 'Gi0/1'
+  const tlv = (type: number, value: number[]) => [(type << 1) | (value.length >> 8), value.length & 0xff, ...value]
+  w.begin('eth', 'Ethernet II')
+  w.field('MAC destino', '01:80:c2:00:00:0e (vecinos LLDP)', [0x01, 0x80, 0xc2, 0, 0, 0x0e])
+  w.field('MAC origen', `${fmtMac(macOf(p.from))} (${NODES[p.from].label})`, macOf(p.from))
+  w.field('EtherType', 'LLDP (0x88cc)', [0x88, 0xcc])
+  w.end()
+  w.begin('app', 'LLDP')
+  w.field('Chassis ID', `MAC ${fmtMac(macOf(p.from))}`, tlv(1, [4, ...macOf(p.from)]))
+  w.field('Port ID', port, tlv(2, [5, ...ascii(port)]))
+  w.field('TTL', '120 s', tlv(3, u16(120)))
+  w.field('Nombre del sistema', sys, tlv(5, ascii(sys)))
+  w.field('Capacidades', 'puente (switch), activo', tlv(7, [0, 4, 0, 4]))
+  w.field('Dirección de gestión', '192.168.1.' + (p.from === 'switch' ? '250' : '251'), tlv(8, [5, 1, ...ipBytes('192.168.1.' + (p.from === 'switch' ? '250' : '251')), 2, 0, 0, 0, 0, 0]))
+  w.field('Fin', 'TLV 0', [0, 0])
+  w.end()
+}
+
 /** Builds a pure layer-2 frame (802.11, EAPOL, PPPoE, STP). */
 function l2Frame(w: Writer, p: Packet): number {
   if (p.proto === 'BLE') {
     bleFrame(w, p)
     return 251
+  }
+  if (p.proto === 'LLDP') {
+    lldpFrame(w, p)
+    return 1
   }
   const seed = p.info + p.t
   const wifi = p.proto === '802.11' || (p.proto === 'EAPOL' && (p.from === 'ap' || p.to === 'ap'))
@@ -1055,7 +1153,7 @@ export function decodePacket(p: Packet, opts: { full?: boolean } = {}): Frame {
   // Link layer (as seen on the first hop leaving the sender)
   let dstMac: number[]
   let dstMacTxt: string
-  if (isDhcpBroadcast || isArpBroadcast) [dstMac, dstMacTxt] = [BROADCAST, 'ff:ff:ff:ff:ff:ff (difusión)']
+  if (isDhcpBroadcast || isArpBroadcast || dstIp === '255.255.255.255') [dstMac, dstMacTxt] = [BROADCAST, 'ff:ff:ff:ff:ff:ff (difusión)']
   else if (v6 && dstIp.startsWith('ff')) {
     const b = ip6Bytes(dstIp)
     dstMac = [0x33, 0x33, ...b.slice(12)]
@@ -1122,7 +1220,7 @@ export function decodePacket(p: Packet, opts: { full?: boolean } = {}): Frame {
   const ipStart = w.pos()
   const protoNum = tr.kind === 'tcp' ? 6 : tr.kind === 'udp' ? 17 : tr.kind === 'ip' ? tr.num : 1
   const protoTxt = tr.kind === 'tcp' ? 'TCP (6)' : tr.kind === 'udp' ? 'UDP (17)' : tr.kind === 'ip' ? tr.label : 'ICMP (1)'
-  const ttl = p.ttl ?? (tr.kind === 'ip' && p.proto !== 'ESP' ? 1 : 64)
+  const ttl = p.ttl ?? (p.proto === 'VRRP' ? 255 : p.proto === 'IGMP' || p.proto === 'OSPF' || p.proto === 'RIP' ? 1 : 64)
   w.begin('ip', 'IPv4')
   w.field('Versión / IHL', '4 / 20 bytes', [0x45])
   w.field('DSCP / ECN', p.proto === 'OSPF' ? 'CS6 (control de red)' : '0', [p.proto === 'OSPF' ? 0xc0 : 0])
@@ -1239,7 +1337,7 @@ export function decodePacket(p: Packet, opts: { full?: boolean } = {}): Frame {
     w.begin('app', appName[p.proto] ?? p.proto)
     if (morePayload(w, p)) {
       /* handled */
-    } else if (p.proto === 'DNS') dnsPayload(w, p, fromServer)
+    } else if (p.proto === 'DNS' || p.proto === 'mDNS') dnsPayload(w, p, fromServer)
     else if (p.proto === 'DHCP') dhcpPayload(w, p, fromClient)
     else if (p.proto === 'NTP') ntpPayload(w, p, fromClient)
     else if (p.proto === 'BGP') bgpPayload(w, p)

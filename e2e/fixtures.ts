@@ -32,3 +32,17 @@ export async function axe(page: Page) {
 }
 
 export const stepBtn = (page: Page) => page.getByRole('button', { name: /^Paso$/ })
+
+/** The protocol list: a fixed sidebar on wide screens, a modal panel on narrow ones. */
+export async function openList(page: Page) {
+  const width = page.viewportSize()?.width ?? 0
+  if (width >= 1280) {
+    const side = page.getByRole('complementary', { name: 'Protocolos' })
+    await expect(side).toBeVisible()
+    return side
+  }
+  await page.getByRole('button', { name: 'Protocolos', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Protocolos' })
+  await expect(dialog).toBeVisible()
+  return dialog
+}

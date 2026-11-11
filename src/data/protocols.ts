@@ -1,6 +1,7 @@
 import { tcpHandshake } from './helpers'
 import { MORE_PROTOCOLS } from './more'
 import { MORE_PROTOCOLS_2 } from './more2'
+import { MORE_PROTOCOLS_3 } from './more3'
 
 export type NodeId =
   | 'client'
@@ -40,8 +41,11 @@ export type NodeId =
   | 'ble'
   | 'rproxy'
   | 'app1'
+  | 'tv'
+  | 'router2'
+  | 'logsrv'
 
-export type NodeKind = 'laptop' | 'router' | 'switch' | 'printer' | 'cloud' | 'server' | 'phone' | 'camera' | 'wifi' | 'chip'
+export type NodeKind = 'laptop' | 'router' | 'switch' | 'printer' | 'cloud' | 'server' | 'phone' | 'camera' | 'wifi' | 'chip' | 'screen'
 
 export interface NetNode {
   id: NodeId
@@ -89,6 +93,9 @@ export const NODES: Record<NodeId, NetNode> = {
   core: { id: 'core', label: 'Router núcleo', addr: '10.0.0.2', kind: 'router', x: 480, y: 420 },
   rproxy: { id: 'rproxy', label: 'Proxy inverso', addr: '203.0.113.80', kind: 'server', x: 650, y: 230 },
   app1: { id: 'app1', label: 'Servidor de aplicaciones', addr: '10.0.0.20', kind: 'server', x: 840, y: 230 },
+  tv: { id: 'tv', label: 'Smart TV', addr: '192.168.1.30', kind: 'screen', x: 430, y: 110 },
+  router2: { id: 'router2', label: 'Router de respaldo', addr: '192.168.1.3', kind: 'router', x: 260, y: 480 },
+  logsrv: { id: 'logsrv', label: 'Servidor de logs', addr: '192.168.1.25', kind: 'server', x: 460, y: 440 },
   ble: { id: 'ble', label: 'Pulsera BLE', addr: 'c4:7f:51:0a:2e:91', kind: 'chip', x: 280, y: 560 },
 }
 
@@ -130,6 +137,10 @@ export const LINKS: [NodeId, NodeId][] = [
   ['phone', 'ble'],
   ['internet', 'rproxy'],
   ['rproxy', 'app1'],
+  ['switch', 'tv'],
+  ['router', 'router2'],
+  ['router2', 'client'],
+  ['router', 'logsrv'],
 ]
 
 export type PacketKind = 'dns' | 'tcp' | 'udp' | 'tls' | 'req' | 'res' | 'ctrl' | 'err'
@@ -570,7 +581,7 @@ const BASE_PROTOCOLS: Protocol[] = [
   },
 ]
 
-export const PROTOCOLS: Protocol[] = [...BASE_PROTOCOLS, ...MORE_PROTOCOLS, ...MORE_PROTOCOLS_2]
+export const PROTOCOLS: Protocol[] = [...BASE_PROTOCOLS, ...MORE_PROTOCOLS, ...MORE_PROTOCOLS_2, ...MORE_PROTOCOLS_3]
 
 const routeCache = new Map<string, NodeId[]>()
 

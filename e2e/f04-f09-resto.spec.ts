@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { axe, expect, fresh, stepBtn, test } from './fixtures'
+import { axe, expect, fresh, openList, stepBtn, test } from './fixtures'
 
 test.describe('F04 quiz y progreso', () => {
   test('F04-H1 completar DNS y conservar el progreso', async ({ page }) => {
@@ -10,8 +10,8 @@ test.describe('F04 quiz y progreso', () => {
     await page.getByRole('button', { name: 'Cuánto tiempo puede guardarse en caché' }).click()
     await expect(page.getByText(/Resultado: 2\/2/)).toBeVisible()
     await page.reload()
-    await page.getByRole('button', { name: 'Protocolos', exact: true }).click()
-    await expect(page.getByRole('dialog', { name: 'Protocolos' }).getByText(/^1\/\d+ completados$/)).toBeVisible()
+    const list = await openList(page)
+    await expect(list.getByText(/^1\/\d+ completados$/)).toBeVisible()
   })
 
   test('F04-E1 doble clic en una respuesta', async ({ page }) => {
@@ -63,8 +63,8 @@ test.describe('F05 ajustes que se recuerdan', () => {
 test.describe('F06 recorrido guiado', () => {
   test('F06-H1 empezar y avanzar', async ({ page }) => {
     await fresh(page)
-    await page.getByRole('button', { name: 'Protocolos', exact: true }).click()
-    await page.getByRole('button', { name: /Empezar el recorrido guiado/ }).click()
+    const list = await openList(page)
+    await list.getByRole('button', { name: /Empezar el recorrido guiado/ }).click()
     const tour = page.getByRole('navigation', { name: 'Recorrido guiado' })
     await expect(tour.getByText('Recorrido guiado · 1/15')).toBeVisible()
     await tour.getByRole('button', { name: 'ARP', exact: true }).click()
@@ -92,8 +92,7 @@ test.describe('F08 accesibilidad', () => {
     expect(await axe(page), 'inspector').toEqual([])
     await page.getByRole('tab', { name: 'Quiz' }).click()
     expect(await axe(page), 'quiz').toEqual([])
-    await page.getByRole('button', { name: 'Protocolos', exact: true }).click()
-    await expect(page.getByRole('dialog', { name: 'Protocolos' })).toBeVisible()
+    await openList(page)
     expect(await axe(page), 'lista de protocolos').toEqual([])
   })
 
@@ -112,4 +111,30 @@ test.describe('F09 móvil', () => {
     expect(overflow).toBeLessThanOrEqual(0)
     await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible()
   })
+})
+
+test.describe('F10 lista lateral fija', () => {
+  test('F10-H1 ocultar y mostrar, recordado', async ({ page }) => {
+    test.skip((page.viewportSize()?.width ?? 0) < 1280, 'solo en pantallas anchas')
+    await fresh(page)
+    const side = page.getByRole('complementary', { name: 'Protocolos' })
+    await expect(side).toBeVisible()
+    await side.getByRole('button', { name: 'Ocultar lista de protocolos' }).click()
+    await expect(side).toHaveCount(0)
+    await page.reload()
+    await expect(page.getByRole('complementary', { name: 'Protocolos' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Protocolos', exact: true }).click()
+    await expect(page.getByRole('complementary', { name: 'Protocolos' })).toBeVisible()
+  })
+})
+
+test.describe('F11 protocolos nuevos', () => {
+  for (const id of ['mdns', 'ssdp', 'lldp', 'vrrp', 'rip', 'gre', 'syslog', 'wol']) {
+    test(`F11-H ${id} se reproduce hasta el final`, async ({ page }) => {
+      await fresh(page, id)
+      await page.getByRole('radio', { name: '2×' }).click()
+      await page.getByRole('button', { name: 'Reproducir' }).click()
+      await expect(page.getByRole('heading', { name: 'Lección completada' })).toBeVisible({ timeout: 20_000 })
+    })
+  }
 })

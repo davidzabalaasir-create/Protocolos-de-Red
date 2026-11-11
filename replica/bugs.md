@@ -39,12 +39,12 @@ Status: corregido en esta tanda: se quita el `aria-label` y el enlace se nombra 
 
 | | |
 |---|---|
-| Casos ejecutados | 50 (25 casos × escritorio y móvil) |
-| Pasan | 50 |
+| Casos ejecutados | 68 (34 casos × escritorio y móvil; 1 omitido a propósito en móvil) |
+| Pasan | 67 + 1 omitido |
 | Fallos por gravedad | S1: 0 · S2: 0 · S3: 1 · S4: 1 |
 | Corregidos | 2 de 2 |
 
-Además: 961 pruebas unitarias (decodificación, checksums, rutas, pcapng, traducciones).
+Además: 1 045 pruebas unitarias (decodificación, checksums, rutas, pcapng, traducciones).
 
 ## Por comprobar (no reproducido)
 

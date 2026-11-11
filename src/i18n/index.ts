@@ -3,12 +3,13 @@ import { NODES, type NodeId, type Packet, type Protocol } from '../data/protocol
 import { LESSONS_EN_1 } from './en-lessons-1'
 import { LESSONS_EN_2 } from './en-lessons-2'
 import { LESSONS_EN_3 } from './en-lessons-3'
+import { LESSONS_EN_4 } from './en-lessons-4'
 import type { Lang, LessonText } from './types'
 import { UI_EN } from './ui-en'
 
 export type { Lang } from './types'
 
-export const LESSONS_EN: Record<string, LessonText> = { ...LESSONS_EN_1, ...LESSONS_EN_2, ...LESSONS_EN_3 }
+export const LESSONS_EN: Record<string, LessonText> = { ...LESSONS_EN_1, ...LESSONS_EN_2, ...LESSONS_EN_3, ...LESSONS_EN_4 }
 
 // ── language store (persisted, shared by every component) ─────────────────
 const KEY = 'protocolos:lang'
@@ -90,6 +91,9 @@ export const NODE_EN: Partial<Record<NodeId, string>> = {
   core: 'Core router',
   ble: 'BLE wristband',
   rproxy: 'Reverse proxy',
+  tv: 'Smart TV',
+  router2: 'Backup router',
+  logsrv: 'Log server',
   app1: 'Application server',
 }
 
@@ -97,6 +101,18 @@ export const nodeLabel = (lang: Lang, id: NodeId, es: string) => (lang === 'en' 
 
 /** Literal phrase swaps for the packet "Info" column (the decoder keeps reading the Spanish original). */
 const INFO_EN: [string, string][] = [
+  ['Petición: tabla completa', 'Request: full table'],
+  ['(nuevo maestro)', '(new master)'],
+  ['Anuncio VRID', 'Advertisement VRID'],
+  ['prioridad', 'priority'],
+  ['métrica', 'metric'],
+  ['Paquete mágico para el servidor de archivos', 'Magic packet for the file server'],
+  ['sistema=', 'system='],
+  ['puerto=', 'port='],
+  ['(respuesta)', '(reply)'],
+  ['acceso de admin desde', 'admin login from'],
+  ['enlace eth1 caído', 'link eth1 down'],
+  ['enlace eth1 activo', 'link eth1 up'],
   ['¿Quién tiene 192.168.1.50? Responde a .10', 'Who has 192.168.1.50? Tell .10'],
   ['(difusión reenviada por todos los puertos)', '(broadcast forwarded out of every port)'],
   ['Trama → MAC de la impresora (desconocida)', 'Frame → printer MAC (unknown)'],

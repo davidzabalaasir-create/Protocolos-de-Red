@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Header } from './components/Header'
 import { PacketFlow } from './components/PacketFlow'
-import { ProtocolDrawer } from './components/ProtocolDrawer'
+import { ProtocolDrawer, ProtocolSidebar } from './components/ProtocolDrawer'
 import { SidePanel, type PanelTab } from './components/SidePanel'
 import { Stage } from './components/Stage'
 import { Toolbar } from './components/Toolbar'
@@ -52,6 +52,20 @@ export default function App() {
     })
   }, [])
   const [drawer, setDrawer] = useState(false)
+  // wide screens get a fixed sidebar (remembered open/closed); narrow ones use the drawer
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && matchMedia('(min-width: 1280px)').matches)
+  useEffect(() => {
+    const mq = matchMedia('(min-width: 1280px)')
+    const on = () => setWide(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  const [sidebar, setSidebarState] = useState(() => safeGet('protocolos:list') !== '0')
+  const setSidebar = useCallback((v: boolean) => {
+    setSidebarState(v)
+    safeSet('protocolos:list', v ? '1' : '0')
+  }, [])
+  const showSidebar = wide && sidebar && !focus
   const [layerFilter, setLayerFilter] = useState<number | null>(null)
   const [tab, setTab] = useState<PanelTab>('overview')
   const { progress, markWatched, setQuizScore } = useProgress()
@@ -130,11 +144,18 @@ export default function App() {
   }, [])
   const openQuiz = useCallback(() => setTab('quiz'), [])
   const onScore = useCallback((score: number) => setQuizScore(protocolId, score), [protocolId, setQuizScore])
-  const openMenu = useCallback(() => setDrawer(true), [])
-  const openLayer = useCallback((l: number) => {
-    setLayerFilter(l)
-    setDrawer(true)
-  }, [])
+  const openMenu = useCallback(() => {
+    if (wide && !focus) setSidebar(!sidebar)
+    else setDrawer(true)
+  }, [wide, focus, sidebar, setSidebar])
+  const openLayer = useCallback(
+    (l: number) => {
+      setLayerFilter(l)
+      if (wide && !focus) setSidebar(true)
+      else setDrawer(true)
+    },
+    [wide, focus, setSidebar],
+  )
 
   // next lesson: the guided tour's next stop, otherwise the next one in the catalogue
   const next = useMemo(() => {
@@ -180,7 +201,11 @@ export default function App() {
         onLayer={openLayer}
       />
 
-      <main id="main" className="flex flex-1 flex-col gap-3 px-3 pb-3 sm:px-4">
+      <div className="flex flex-1 items-start gap-3 px-3 pb-3 sm:px-4">
+      {showSidebar && (
+        <ProtocolSidebar layer={layerFilter} currentId={protocol.id} progress={progress} onSelect={select} onLayer={setLayerFilter} onHide={() => setSidebar(false)} />
+      )}
+      <main id="main" className="flex min-w-0 flex-1 flex-col gap-3">
         <h1 className="sr-only">Protocolos de Red: {protocol.name}</h1>
         <TourBar currentId={protocol.id} onSelect={select} watched={progress.watched} />
         <div className={`grid items-start gap-3 ${focus ? '' : 'lg:grid-cols-[1fr_minmax(20rem,26rem)]'}`}>
@@ -209,6 +234,7 @@ export default function App() {
           onInspect={inspect}
         />
       </main>
+      </div>
 
       <footer className="border-t border-line px-4 py-4 text-center text-xs text-muted">
         {t('Diseñado por')}{' '}<a href="https://github.com/davidzabalaasir-create" target="_blank" rel="noopener noreferrer" className="font-bold text-fg underline">David</a> · {t('Inspirado en Protocol Explorer · Hecho con React y Tailwind CSS')}

@@ -1,11 +1,10 @@
-import { expect, fresh, stepBtn, test } from './fixtures'
+import { expect, fresh, openList, stepBtn, test } from './fixtures'
 
 test.describe('F01 elegir una lección', () => {
   test('F01-H1 desde la lista de protocolos', async ({ page }) => {
     await fresh(page)
-    await page.getByRole('button', { name: 'Protocolos', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Protocolos' })
-    await dialog.getByRole('button', { name: /^DNS Sistema/ }).click()
+    const list = await openList(page)
+    await list.getByRole('button', { name: /^DNS Sistema/ }).click()
     await expect(page).toHaveURL(/#dns$/)
     await expect(page.getByText('Sistema de nombres de dominio').first()).toBeVisible()
   })
@@ -22,10 +21,10 @@ test.describe('F01 elegir una lección', () => {
   test('F01-H3 filtrar por capa OSI', async ({ page }) => {
     await fresh(page)
     await page.getByRole('button', { name: /^Capa 2, Enlace de datos/ }).click()
-    const dialog = page.getByRole('dialog', { name: 'Protocolos' })
-    await expect(dialog.getByText('Filtrado: capa 2 · Enlace de datos')).toBeVisible()
-    await expect(dialog.getByRole('button', { name: /^ARP/ })).toBeVisible()
-    await expect(dialog.getByRole('button', { name: /^HTTP / })).toHaveCount(0)
+    const list = (page.viewportSize()?.width ?? 0) >= 1280 ? page.getByRole('complementary', { name: 'Protocolos' }) : page.getByRole('dialog', { name: 'Protocolos' })
+    await expect(list.getByText('Filtrado: capa 2 · Enlace de datos')).toBeVisible()
+    await expect(list.getByRole('button', { name: /^ARP/ })).toBeVisible()
+    await expect(list.getByRole('button', { name: /^HTTP / })).toHaveCount(0)
   })
 
   test('F01-E1 enlace a un protocolo que no existe', async ({ page }) => {
@@ -55,6 +54,9 @@ test.describe('F02 reproducir una lección', () => {
     for (let i = 0; i < 3; i++) await stepBtn(page).click()
     await expect(page.getByRole('progressbar', { name: 'Progreso de la captura' })).toHaveAttribute('aria-valuetext', 'Paquete 3 de 8')
     await expect(page.getByText('Explicación')).toBeVisible()
+    const card = page.getByRole('region', { name: 'Etapa actual' })
+    await expect(card).toContainText('Etapa 2 de 3')
+    await expect(card).toContainText('Conexión TCP')
   })
 
   test('F02-H2 reproducir hasta el final a 2×', async ({ page }) => {
