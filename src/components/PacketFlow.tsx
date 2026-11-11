@@ -134,7 +134,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
         </span>
       </div>
 
-      <div className="max-h-72 overflow-auto">
+      <div className="relative max-h-72 overflow-auto">
         <table className="w-full min-w-[46rem] text-left text-xs">
           <caption className="sr-only">{t('Paquetes de {name}. Selecciona una fila para ir a ese paquete.', { name: protocol.name })}</caption>
           <thead className="sticky top-0 z-10 bg-panel">
@@ -161,6 +161,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
 const Row = memo(function Row({ p, i, current, onStep, onInspect, rowRef }: { p: Packet; i: number; current: boolean; onStep: (i: number) => void; onInspect: (i: number) => void; rowRef?: Ref<HTMLTableRowElement> }) {
   const t = useT()
   return (
+    <>
     <tr
       ref={rowRef}
       aria-current={current ? 'step' : undefined}
@@ -202,5 +203,18 @@ const Row = memo(function Row({ p, i, current, onStep, onInspect, rowRef }: { p:
         </button>
       </td>
     </tr>
+    {current && (
+      <tr className="border-t border-line bg-panel-2">
+        <td colSpan={8} className="px-4 pb-3 pt-1">
+          <div className="rounded-md border border-line border-l-4 bg-panel p-2.5 text-xs leading-relaxed whitespace-normal" style={{ borderLeftColor: kindColor(p.kind) }}>
+            <span className="mr-2 rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider uppercase" style={{ background: kindColor(p.kind), color: 'var(--k-on)' }}>
+              {t('Explicación')}
+            </span>
+            {p.note}
+          </div>
+        </td>
+      </tr>
+    )}
+    </>
   )
 })

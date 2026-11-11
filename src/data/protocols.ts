@@ -38,6 +38,8 @@ export type NodeId =
   | 'broker'
   | 'core'
   | 'ble'
+  | 'rproxy'
+  | 'app1'
 
 export type NodeKind = 'laptop' | 'router' | 'switch' | 'printer' | 'cloud' | 'server' | 'phone' | 'camera' | 'wifi' | 'chip'
 
@@ -85,6 +87,8 @@ export const NODES: Record<NodeId, NetNode> = {
   iot: { id: 'iot', label: 'Sensor IoT', addr: '192.168.1.70', kind: 'chip', x: 90, y: 560 },
   broker: { id: 'broker', label: 'Broker MQTT', addr: '198.51.100.90', kind: 'server', x: 650, y: 450 },
   core: { id: 'core', label: 'Router núcleo', addr: '10.0.0.2', kind: 'router', x: 480, y: 420 },
+  rproxy: { id: 'rproxy', label: 'Proxy inverso', addr: '203.0.113.80', kind: 'server', x: 650, y: 230 },
+  app1: { id: 'app1', label: 'Servidor de aplicaciones', addr: '10.0.0.20', kind: 'server', x: 840, y: 230 },
   ble: { id: 'ble', label: 'Pulsera BLE', addr: 'c4:7f:51:0a:2e:91', kind: 'chip', x: 280, y: 560 },
 }
 
@@ -124,6 +128,8 @@ export const LINKS: [NodeId, NodeId][] = [
   ['internet', 'broker'],
   ['router', 'core'],
   ['phone', 'ble'],
+  ['internet', 'rproxy'],
+  ['rproxy', 'app1'],
 ]
 
 export type PacketKind = 'dns' | 'tcp' | 'udp' | 'tls' | 'req' | 'res' | 'ctrl' | 'err'

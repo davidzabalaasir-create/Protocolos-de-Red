@@ -134,6 +134,26 @@ export const LESSONS_EN_3: Record<string, LessonText> = {
       { q: 'What does the Observe option do?', options: ['Get notified when the resource changes', 'Encrypt the message', 'Delete the resource'], answer: 0, why: 'The server reports every change without new requests.' },
     ],
   },
+  reverse: {
+    full: 'A single entry point in front of the servers',
+    description:
+      'A reverse proxy sits in front of a website’s servers: it receives every connection, decrypts TLS with its own certificate and hands each request to the right internal server. Visitors only ever see one address; the application servers, hidden on the internal network, never deal with TLS.',
+    facts: [['Layer', L7], ['Port', '443 outside, 80/8080 inside'], ['Transport', 'TCP'], ['Jobs', 'TLS, load balancing, caching, compression'], ['Examples', 'nginx, HAProxy, Caddy, CDNs'], ['Typical header', 'X-Forwarded-For']],
+    notes: [
+      ...HS,
+      'The browser thinks it is talking to the website; it is actually greeting the reverse proxy.',
+      'The certificate comes from the proxy: it holds the website’s private key.',
+      'The request reaches the proxy encrypted, and the proxy decrypts it.',
+      ...HS,
+      'On the internal network it forwards it as plain HTTP, noting the original visitor’s IP.',
+      'The application server answers the proxy, not the browser.',
+      'The proxy encrypts the response again and delivers it to the browser.',
+    ],
+    quiz: [
+      { q: 'Who presents the TLS certificate on a site behind a reverse proxy?', options: ['The reverse proxy', 'The application server', 'The browser'], answer: 0, why: 'The proxy holds the key and terminates TLS; internal servers never see it.' },
+      { q: 'What is the X-Forwarded-For header for?', options: ['Telling the original visitor’s IP', 'Encrypting the request', 'Choosing the language'], answer: 0, why: 'Without it, the internal server would only see the proxy’s IP.' },
+    ],
+  },
   ble: {
     full: 'Bluetooth Low Energy',
     description:

@@ -89,6 +89,8 @@ export const NODE_EN: Partial<Record<NodeId, string>> = {
   broker: 'MQTT broker',
   core: 'Core router',
   ble: 'BLE wristband',
+  rproxy: 'Reverse proxy',
+  app1: 'Application server',
 }
 
 export const nodeLabel = (lang: Lang, id: NodeId, es: string) => (lang === 'en' ? (NODE_EN[id] ?? es) : es)
@@ -204,7 +206,7 @@ export function localize(p: Protocol, lang: Lang): Protocol {
   return out
 }
 
-const NAME_EN: Record<string, string> = { ethernet: 'Ethernet & switches', captive: 'Captive portal', proxy: 'HTTP proxy' }
+const NAME_EN: Record<string, string> = { ethernet: 'Ethernet & switches', captive: 'Captive portal', proxy: 'HTTP proxy', reverse: 'Reverse proxy' }
 
 /** Lesson name (most are acronyms and stay the same in English). */
 export const displayName = (lang: Lang, p: { id: string; name: string }) => (lang === 'en' ? (NAME_EN[p.id] ?? p.name) : p.name)

@@ -1,0 +1,38 @@
+feature,area,priority,original,clone,notes
+Catálogo de lecciones de protocolos (39 en el original),lecciones,must,yes,yes,39 de 39 cubiertas + 15 propias (54)
+Lección de proxy inverso,lecciones,should,yes,yes,
+Diagrama de red con paquetes animados,diagrama,must,yes,yes,
+Aparición progresiva de equipos y cámara que encuadra,diagrama,should,yes,yes,Recién añadido; verificado con DOM y captura
+Etiqueta de paquete con nombre y ficha de datos,diagrama,should,yes,yes,
+Enlaces discontinuos que fluyen en la dirección del paquete,diagrama,could,yes,yes,
+Barra de dirección que escribe la URL,diagrama,could,yes,yes,
+Paquete perdido marcado en el diagrama,diagrama,could,yes,yes,
+Notas sobre el diagrama (CONECTADO y similares),diagrama,could,yes,yes,IP resuelta / conectado / cifrado / cerrado
+Ilustraciones isométricas de equipos,diagrama,could,yes,skip,Aspecto propio del original (trade dress); el clon usa iconos Lucide a propósito
+Vista de secuencia,diagrama,should,yes,yes,
+Tabla de paquetes (n.º tiempo origen destino protocolo info tamaño),paquetes,must,yes,yes,
+Reproducir pausar paso y reiniciar,paquetes,must,yes,yes,
+Control de velocidad,paquetes,should,yes,yes,0.5× 1× 2× (el original usa menú)
+Explicación ampliable de cada paquete,paquetes,should,yes,yes,Tarjeta bajo la fila actual de la tabla
+Inspector byte a byte con volcado hex,inspector,must,yes,yes,Con checksums reales; campos poco comunes solo en español
+Lecciones divididas en etapas con título descripción y datos,lecciones,should,yes,partial,Etapas numeradas calculadas de los paquetes; sin ficha de datos por etapa
+Resumen final de la lección (outro),lecciones,could,yes,yes,Con quiz y siguiente lección
+Vista general del protocolo (descripción y ficha),panel,must,yes,yes,
+Búsqueda de protocolos con Ctrl K,navegación,should,yes,yes,
+Selector de capa OSI,navegación,should,yes,yes,
+Lista de protocolos lateral que se puede ocultar,navegación,could,yes,partial,El clon usa un panel desplegable en vez de barra lateral fija
+Modo foco,navegación,could,yes,yes,Botón y tecla F; se recuerda
+Pantalla completa,navegación,could,yes,yes,
+Tema claro y oscuro recordado,ajustes,should,yes,yes,
+Selector de idioma (21 idiomas),ajustes,should,yes,partial,2 de 21 (español e inglés)
+Soporte de escritura de derecha a izquierda (árabe y hebreo),ajustes,could,yes,no,
+Progreso guardado entre visitas,ajustes,should,yes,yes,
+Recordar vista y velocidad elegidas,ajustes,could,yes,yes,
+Atajos de teclado (espacio y flechas),accesibilidad,should,yes,yes,
+Diseño adaptado a móvil,accesibilidad,should,yes,yes,
+Mensaje sin JavaScript,accesibilidad,could,yes,yes,
+Imagen para compartir y manifiesto,acabado,could,yes,yes,
+Quiz por protocolo,extras,could,no,yes,Propio del clon
+Descarga de la captura en .pcapng,extras,could,no,yes,Propio del clon
+Recorrido guiado,extras,could,no,yes,Propio del clon
+14 protocolos que el original no tiene,extras,could,no,yes,NAT traceroute HTTP/2 Kerberos TFTP Telnet CoAP BLE ARP MQTT SNMP LDAP OSPF VLAN STP 802.1X

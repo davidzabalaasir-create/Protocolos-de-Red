@@ -180,7 +180,7 @@ const TRANSPORT: Record<string, Transport> = {
 }
 
 /** Which end of a conversation is the "server" side (gets the well-known port). */
-const RANK: Partial<Record<NodeId, number>> = { client: 0, isp: 0, phone: 0, iot: 0.5, switch: 1, switch2: 1, router: 1, ap: 1, dns: 2 }
+const RANK: Partial<Record<NodeId, number>> = { client: 0, isp: 0, phone: 0, iot: 0.5, rproxy: 2, switch: 1, switch2: 1, router: 1, ap: 1, dns: 2 }
 const rank = (id: NodeId) => RANK[id] ?? 3
 
 // ── application payloads ──────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Header } from './components/Header'
 import { PacketFlow } from './components/PacketFlow'
 import { ProtocolDrawer } from './components/ProtocolDrawer'
@@ -7,11 +7,28 @@ import { Stage } from './components/Stage'
 import { Toolbar } from './components/Toolbar'
 import { TourBar } from './components/TourBar'
 import { PROTOCOLS } from './data/protocols'
-import { localize, useLang, useT } from './i18n'
+import { displayName, localize, useLang, useT } from './i18n'
+import { TOUR } from './data/tour'
 import { QUIZ } from './data/quiz'
 import { isDone, useProgress } from './lib/progress'
 
 type Theme = 'light' | 'dark'
+
+/** localStorage can throw (private mode, blocked storage): never let that break the app. */
+const safeGet = (k: string) => {
+  try {
+    return localStorage.getItem(k)
+  } catch {
+    return null
+  }
+}
+const safeSet = (k: string, v: string) => {
+  try {
+    localStorage.setItem(k, v)
+  } catch {
+    /* ignore */
+  }
+}
 const STEP_MS = 1400
 
 export default function App() {
@@ -19,7 +36,21 @@ export default function App() {
   const [protocolId, setProtocolId] = useState(() => location.hash.slice(1) || 'http')
   const [step, setStep] = useState(-1)
   const [playing, setPlaying] = useState(false)
-  const [speed, setSpeed] = useState(1)
+  const [speed, setSpeedState] = useState(() => {
+    const v = Number(safeGet('protocolos:speed'))
+    return [0.5, 1, 2].includes(v) ? v : 1
+  })
+  const setSpeed = useCallback((v: number) => {
+    setSpeedState(v)
+    safeSet('protocolos:speed', String(v))
+  }, [])
+  const [focus, setFocus] = useState(() => safeGet('protocolos:focus') === '1')
+  const toggleFocus = useCallback(() => {
+    setFocus((f) => {
+      safeSet('protocolos:focus', f ? '0' : '1')
+      return !f
+    })
+  }, [])
   const [drawer, setDrawer] = useState(false)
   const [layerFilter, setLayerFilter] = useState<number | null>(null)
   const [tab, setTab] = useState<PanelTab>('overview')
@@ -93,12 +124,36 @@ export default function App() {
     },
     [goTo],
   )
+  const replay = useCallback(() => {
+    setStep(-1)
+    setPlaying(true)
+  }, [])
+  const openQuiz = useCallback(() => setTab('quiz'), [])
   const onScore = useCallback((score: number) => setQuizScore(protocolId, score), [protocolId, setQuizScore])
   const openMenu = useCallback(() => setDrawer(true), [])
   const openLayer = useCallback((l: number) => {
     setLayerFilter(l)
     setDrawer(true)
   }, [])
+
+  // next lesson: the guided tour's next stop, otherwise the next one in the catalogue
+  const next = useMemo(() => {
+    const tourIdx = TOUR.findIndex((s) => s.id === protocol.id)
+    const id = tourIdx >= 0 ? TOUR[tourIdx + 1]?.id : PROTOCOLS[PROTOCOLS.findIndex((p) => p.id === protocol.id) + 1]?.id
+    const p = id ? PROTOCOLS.find((x) => x.id === id) : undefined
+    return p ? { id: p.id, name: displayName(lang, p) } : null
+  }, [protocol.id, lang])
+
+  // F toggles focus mode (when not typing)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'f' || e.ctrlKey || e.metaKey || e.altKey) return
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, dialog[open]')) return
+      toggleFocus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggleFocus])
 
   // follow #protocol links typed in the address bar or shared
   useEffect(() => {
@@ -128,8 +183,9 @@ export default function App() {
       <main id="main" className="flex flex-1 flex-col gap-3 px-3 pb-3 sm:px-4">
         <h1 className="sr-only">Protocolos de Red: {protocol.name}</h1>
         <TourBar currentId={protocol.id} onSelect={select} watched={progress.watched} />
-        <div className="grid items-start gap-3 lg:grid-cols-[1fr_minmax(20rem,26rem)]">
-          <Stage protocol={protocol} step={step} durationMs={STEP_MS / speed} />
+        <div className={`grid items-start gap-3 ${focus ? '' : 'lg:grid-cols-[1fr_minmax(20rem,26rem)]'}`}>
+          <Stage protocol={protocol} step={step} durationMs={STEP_MS / speed} onStep={goTo} onReplay={replay} onQuiz={openQuiz} next={next} onNext={select} focus={focus} onFocus={toggleFocus} />
+          {!focus && (
           <SidePanel
             protocol={protocol}
             step={step}
@@ -139,6 +195,7 @@ export default function App() {
             bestScore={progress.quiz[protocol.id]}
             onScore={onScore}
           />
+          )}
         </div>
         <PacketFlow
           protocol={protocol}

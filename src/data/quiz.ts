@@ -214,6 +214,10 @@ export const QUIZ: Record<string, Question[]> = {
     { q: '¿A qué equivale el código CoAP 2.05?', options: ['A un 200 OK con contenido', 'A un 404', 'A un error'], answer: 0, why: '2.05 Content es la respuesta correcta con datos.' },
     { q: '¿Qué hace la opción Observe?', options: ['Recibir avisos cuando cambia el recurso', 'Cifrar el mensaje', 'Borrar el recurso'], answer: 0, why: 'El servidor notifica cada cambio sin nuevas peticiones.' },
   ],
+  reverse: [
+    { q: '¿Quién presenta el certificado TLS en una web con proxy inverso?', options: ['El proxy inverso', 'El servidor de aplicaciones', 'El navegador'], answer: 0, why: 'El proxy guarda la clave y termina el TLS; los servidores internos no lo ven.' },
+    { q: '¿Para qué sirve la cabecera X-Forwarded-For?', options: ['Para indicar la IP del visitante original', 'Para cifrar la petición', 'Para elegir el idioma'], answer: 0, why: 'Sin ella, el servidor interno solo vería la IP del proxy.' },
+  ],
   ble: [
     { q: '¿Cómo descubre el móvil una pulsera BLE?', options: ['Escuchando sus anuncios (ADV_IND)', 'Por DNS', 'Con un cable'], answer: 0, why: 'Los dispositivos se anuncian en los canales de publicidad.' },
     { q: '¿Qué protocolo se usa para leer datos como el pulso?', options: ['ATT/GATT', 'SMTP', 'BGP'], answer: 0, why: 'Los datos son atributos GATT leídos o notificados mediante ATT.' },

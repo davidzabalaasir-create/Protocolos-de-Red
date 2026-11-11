@@ -18,7 +18,7 @@ export function Header({ theme, onTheme, onOpenMenu }: Props) {
         {t('Protocolos')}
       </Button>
 
-      <a href="/" className="flex min-h-11 items-center gap-3 rounded-md" aria-label={t('Protocolos de Red, inicio')}>
+      <a href="/" className="flex min-h-11 items-center gap-3 rounded-md">
         <span className="grid size-11 place-items-center rounded-md border border-line bg-panel">
           <Boxes aria-hidden className="size-6 text-accent dark:text-blue-300" />
         </span>

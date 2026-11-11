@@ -180,6 +180,32 @@ export const MORE_PROTOCOLS_2: Protocol[] = [
     ],
   },
   {
+    id: 'reverse',
+    name: 'Proxy inverso',
+    full: 'Un único punto de entrada delante de los servidores',
+    layer: 7,
+    description:
+      'Un proxy inverso se coloca delante de los servidores de una web: recibe todas las conexiones, descifra el TLS con su propio certificado y reparte cada petición al servidor interno adecuado. Los visitantes solo ven una dirección; los servidores de aplicaciones, ocultos en la red interna, nunca tratan con TLS.',
+    facts: [
+      ['Capa', 'Aplicación (capa 7)'],
+      ['Puerto', '443 hacia fuera, 80/8080 hacia dentro'],
+      ['Transporte', 'TCP'],
+      ['Funciones', 'TLS, balanceo, caché, compresión'],
+      ['Ejemplos', 'nginx, HAProxy, Caddy, CDN'],
+      ['Cabecera típica', 'X-Forwarded-For'],
+    ],
+    packets: [
+      ...tcpHandshake('rproxy', 443, 0),
+      { t: 0.03, from: 'client', to: 'rproxy', proto: 'TLS', info: 'Client Hello (SNI=www.ejemplo.com)', size: '517 B', kind: 'tls', note: 'El navegador cree hablar con la web; en realidad saluda al proxy inverso.' },
+      { t: 0.048, from: 'rproxy', to: 'client', proto: 'TLS', info: 'Server Hello, Certificate, Finished', size: '4.1 KB', kind: 'tls', note: 'El certificado lo presenta el proxy: es quien guarda la clave privada de la web.' },
+      { t: 0.052, from: 'client', to: 'rproxy', proto: 'TLS', info: 'Application Data (GET /)', size: '512 B', kind: 'req', note: 'La petición llega cifrada al proxy, que la descifra.' },
+      ...tcpHandshake('app1', 8080, 0.053, 'rproxy', 41500),
+      { t: 0.058, from: 'rproxy', to: 'app1', proto: 'HTTP', info: 'GET / HTTP/1.1 (X-Forwarded-For: 192.168.1.10)', size: '540 B', kind: 'req', note: 'Por la red interna la reenvía en HTTP normal, indicando la IP del visitante original.' },
+      { t: 0.07, from: 'app1', to: 'rproxy', proto: 'HTTP', info: 'HTTP/1.1 200 OK (text/html)', size: '12.8 KB', kind: 'res', note: 'El servidor de aplicaciones responde al proxy, no al navegador.' },
+      { t: 0.073, from: 'rproxy', to: 'client', proto: 'TLS', info: 'Application Data (200 OK)', size: '12.9 KB', kind: 'res', note: 'El proxy vuelve a cifrar la respuesta y se la entrega al navegador.' },
+    ],
+  },
+  {
     id: 'ble',
     name: 'Bluetooth LE',
     full: 'Bluetooth de bajo consumo',

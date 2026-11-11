@@ -1,4 +1,9 @@
 import { Camera, Cloud, Cpu, Laptop, Network, Phone, Printer, Router, Server, Wifi, Workflow, type LucideIcon } from 'lucide-react'
+import { Focus, Maximize, Minimize, Minimize2 } from 'lucide-react'
+import { Button } from './ui/Button'
+import { StageStrip } from './StageStrip'
+import { LessonOutro } from './LessonOutro'
+import { stagesFor } from '../lib/stages'
 import { nodeLabel, useLang, useT } from '../i18n'
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { kindColor, LINKS, NODES, addrOf, nodesFor, route, type NodeId, type NodeKind, type Packet, type Protocol } from '../data/protocols'
@@ -72,12 +77,48 @@ interface Props {
   protocol: Protocol
   step: number
   durationMs: number
+  onStep: (i: number) => void
+  onReplay: () => void
+  onQuiz: () => void
+  next: { id: string; name: string } | null
+  onNext: (id: string) => void
+  focus: boolean
+  onFocus: () => void
 }
 
-export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) {
+const VIEW_KEY = 'protocolos:view'
+const savedView = (): 'net' | 'seq' => {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'seq' ? 'seq' : 'net'
+  } catch {
+    return 'net'
+  }
+}
+
+export const Stage = memo(function Stage({ protocol, step, durationMs, onStep, onReplay, onQuiz, next, onNext, focus, onFocus }: Props) {
   const t = useT()
   const lang = useLang()
-  const [view, setView] = useState<'net' | 'seq'>('net')
+  const [view, setViewState] = useState<'net' | 'seq'>(savedView)
+  const setView = (v: 'net' | 'seq') => {
+    setViewState(v)
+    try {
+      localStorage.setItem(VIEW_KEY, v)
+    } catch {
+      /* private mode */
+    }
+  }
+  const sectionRef = useRef<HTMLElement>(null)
+  const [fullscreen, setFullscreen] = useState(false)
+  useEffect(() => {
+    const on = () => setFullscreen(document.fullscreenElement === sectionRef.current)
+    document.addEventListener('fullscreenchange', on)
+    return () => document.removeEventListener('fullscreenchange', on)
+  }, [])
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+    else sectionRef.current?.requestFullscreen().catch(() => {})
+  }
+  const isLast = step === protocol.packets.length - 1
   const packet = step >= 0 ? protocol.packets[step] : null
   const color = packet ? kindColor(packet.kind) : ''
 
@@ -91,11 +132,12 @@ export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) 
   ] as const
 
   return (
-    <section aria-labelledby="stage-title" className="grid-bg relative flex min-h-[22rem] flex-col rounded-lg border border-line bg-panel">
+    <section ref={sectionRef} aria-labelledby="stage-title" className="grid-bg relative flex min-h-[22rem] flex-col rounded-lg border border-line bg-panel">
       <h2 id="stage-title" className="sr-only">
         {t('Visualización')}
       </h2>
-      <div role="tablist" aria-label={t('Tipo de vista')} className="m-3 flex w-fit gap-0.5 rounded-lg border border-line-strong bg-panel p-1 shadow-sm">
+      <div className="m-3 flex flex-wrap items-center justify-between gap-2">
+      <div role="tablist" aria-label={t('Tipo de vista')} className="flex w-fit gap-0.5 rounded-lg border border-line-strong bg-panel p-1 shadow-sm">
         {tabs.map(([id, label, Icon]) => (
           <button
             key={id}
@@ -120,6 +162,18 @@ export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) 
           </button>
         ))}
       </div>
+        <div className="flex gap-1">
+          <Button size="iconSm" variant="ghost" aria-pressed={focus} label={t('Modo foco')} shortcut="F" onClick={onFocus}>
+            {focus ? <Minimize2 aria-hidden className="size-4" /> : <Focus aria-hidden className="size-4" />}
+          </Button>
+          {typeof document !== 'undefined' && document.fullscreenEnabled && (
+            <Button size="iconSm" variant="ghost" aria-pressed={fullscreen} label={fullscreen ? t('Salir de pantalla completa') : t('Pantalla completa')} onClick={toggleFullscreen}>
+              {fullscreen ? <Minimize aria-hidden className="size-4" /> : <Maximize aria-hidden className="size-4" />}
+            </Button>
+          )}
+        </div>
+      </div>
+      <StageStrip protocol={protocol} step={step} onStep={onStep} />
 
       <div id="stage-panel" role="tabpanel" aria-labelledby={`tab-${view}`} className="flex-1 px-2 pb-3">
         {view === 'net' ? (
@@ -129,6 +183,7 @@ export const Stage = memo(function Stage({ protocol, step, durationMs }: Props) 
         )}
       </div>
 
+      {packet && isLast && <LessonOutro protocol={protocol} onReplay={onReplay} onQuiz={onQuiz} next={next} onNext={onNext} />}
       {packet && (
         <p className="mx-3 mb-3 rounded-md border border-line bg-panel-2 p-3 text-sm leading-relaxed">
           <span className="mr-2 inline-block size-2.5 rounded-full align-middle" style={{ background: color }} aria-hidden />
@@ -354,6 +409,7 @@ function NetworkDiagram({ protocol, packet, step, durationMs, summary }: { proto
       {packet && arrived && !lost && (
         <circle key={`pulse-${step}`} className="net-pulse" cx={NODES[packet.to].x} cy={NODES[packet.to].y} r={34} fill="none" stroke={color} strokeWidth={2.5} aria-hidden />
       )}
+      <MilestoneNotes protocol={protocol} step={step} />
       {urlBar && <UrlBar x={NODES.client.x} y={NODES.client.y} text={urlBar.text} secure={urlBar.secure} typing={urlBar.typing} loaded={urlBar.loaded} />}
     </svg>
   )
@@ -483,6 +539,39 @@ function UrlBar({ x, y, text, secure, typing, loaded }: { x: number; y: number; 
         {typing && <tspan className="net-caret">|</tspan>}
       </text>
       {loaded && <path d={`M${bx + w - 22} ${by + 15} l4 4 l8 -9`} stroke="var(--k-tcp)" strokeWidth={2.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />}
+    </g>
+  )
+}
+
+/** Small badges under the first device once a milestone is reached (connected, encrypted…). */
+function MilestoneNotes({ protocol, step }: { protocol: Protocol; step: number }) {
+  const t = useT()
+  const first = protocol.packets[0]?.from
+  if (!first || step < 0) return null
+  const stages = stagesFor(protocol)
+  const doneKinds = new Set(stages.filter((s) => s.to <= step).map((s) => s.title))
+  const notes: { text: string; color: string }[] = []
+  if (doneKinds.has('Resolución DNS')) notes.push({ text: t('IP RESUELTA'), color: 'var(--k-dns)' })
+  if (doneKinds.has('Conexión TCP') && !doneKinds.has('Cierre de la conexión')) notes.push({ text: t('CONECTADO'), color: 'var(--k-tcp)' })
+  if (doneKinds.has('Saludo seguro')) notes.push({ text: t('CIFRADO'), color: 'var(--k-tls)' })
+  if (doneKinds.has('Cierre de la conexión')) notes.push({ text: t('CERRADO'), color: 'var(--k-ctrl)' })
+  if (!notes.length) return null
+  const n = NODES[first]
+  return (
+    <g aria-hidden className="net-notes">
+      {notes.map((note, i) => {
+        const w = note.text.length * 7.6 + 26
+        const y = n.y + 84 + i * 26
+        return (
+          <g key={note.text} className="net-note">
+            <rect x={n.x - w / 2} y={y} width={w} height={21} rx={3} fill="var(--panel)" stroke={note.color} strokeWidth={1.5} />
+            <circle cx={n.x - w / 2 + 11} cy={y + 10.5} r={3.5} fill={note.color} />
+            <text x={n.x - w / 2 + 20} y={y + 14.5} fontSize="11" fontWeight="800" letterSpacing="0.06em" fill="var(--fg)">
+              {note.text}
+            </text>
+          </g>
+        )
+      })}
     </g>
   )
 }
