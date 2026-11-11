@@ -1,6 +1,7 @@
 import { Boxes, Menu, Moon, Network, Sun } from 'lucide-react'
 import { memo } from 'react'
 import { setLang, useLang, useT } from '../i18n'
+import { appLinkClick, prefetchSubnet } from '../lib/nav'
 import { Button } from './ui/Button'
 
 interface Props {
@@ -19,7 +20,7 @@ export const Header = memo(function Header({ theme, onTheme, onOpenMenu }: Props
         {t('Protocolos')}
       </Button>
 
-      <a href="/" className="flex min-h-11 items-center gap-3 rounded-md">
+      <a href="/" onClick={appLinkClick} className="flex min-h-11 items-center gap-3 rounded-md">
         <span className="grid size-11 place-items-center rounded-md border border-line bg-panel">
           <Boxes aria-hidden className="size-6 text-accent dark:text-blue-300" />
         </span>
@@ -35,6 +36,9 @@ export const Header = memo(function Header({ theme, onTheme, onOpenMenu }: Props
 
       <a
         href="/subneteo/"
+        onClick={appLinkClick}
+        onPointerEnter={prefetchSubnet}
+        onFocus={prefetchSubnet}
         aria-current={typeof location !== 'undefined' && location.pathname.startsWith('/subneteo') ? 'page' : undefined}
         className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-line-strong bg-panel px-3 text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2 aria-[current]:border-accent aria-[current]:bg-accent aria-[current]:text-accent-fg"
       >
@@ -42,7 +46,7 @@ export const Header = memo(function Header({ theme, onTheme, onOpenMenu }: Props
         {t('Subneteo')}
       </a>
 
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
         <div className="text-[11px] leading-tight">
           <span className="block font-bold tracking-wider text-muted uppercase">{t('Diseñado por')}</span>
           <a

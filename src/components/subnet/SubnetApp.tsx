@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLang, useT } from '../../i18n'
 import { useProgress } from '../../lib/progress'
+import { navigate } from '../../lib/nav'
 import { lessonUrl } from '../../lib/url'
 import { Header } from '../Header'
 import { ProtocolDrawer } from '../ProtocolDrawer'
@@ -58,7 +59,7 @@ export default function SubnetApp() {
           setDrawer(false)
           setLayer(null)
         }}
-        onSelect={(id) => location.assign(lessonUrl(id))}
+        onSelect={(id) => navigate(lessonUrl(id))}
         onLayer={setLayer}
       />
     </div>

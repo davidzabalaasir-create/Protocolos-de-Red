@@ -69,6 +69,14 @@ export function prerenderLessons(): Plugin {
 </main>`,
       )
 
+      // /subneteo/ downloads its own code in parallel with the main bundle (no wait, no blank page)
+      const subnetChunk = readdirSync(join(outDir, 'assets')).find((f) => f.startsWith('SubnetApp-') && f.endsWith('.js'))
+      if (subnetChunk) {
+        const file = join(outDir, 'subneteo', 'index.html')
+        writeFileSync(file, readFileSync(file, 'utf8').replace('</head>', `  <link rel="modulepreload" crossorigin href="/assets/${subnetChunk}">
+  </head>`))
+      }
+
       // privacy notice: plain static page, the app doesn't mount there (see main.tsx)
       writePage(
         'privacidad',

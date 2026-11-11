@@ -4,6 +4,7 @@ import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
 import { QUIZ_COUNT } from '../data/quiz-count'
 import { TOUR } from '../data/tour'
 import { displayName, fullName, useLang, useT } from '../i18n'
+import { appLinkClick, prefetchSubnet } from '../lib/nav'
 import { isDone, type Progress } from '../lib/progress'
 import { Button } from './ui/Button'
 
@@ -62,6 +63,8 @@ export const ProtocolList = memo(function ProtocolList({ layer, currentId, progr
         )}
         <a
           href="/subneteo/"
+          onClick={appLinkClick}
+          onPointerEnter={prefetchSubnet}
           className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-panel px-4 text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2"
         >
           <Network aria-hidden className="size-4" />

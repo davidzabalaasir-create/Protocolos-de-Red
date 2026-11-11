@@ -74,7 +74,8 @@ function AccountButton() {
         <SignInButton mode="modal">
           <Button size="sm">
             <LogIn aria-hidden className="size-4" />
-            {t('Iniciar sesión')}
+            {/* icon only on phones so the header fits; screen readers still hear the label */}
+            <span className="max-sm:sr-only">{t('Iniciar sesión')}</span>
           </Button>
         </SignInButton>
       </Show>

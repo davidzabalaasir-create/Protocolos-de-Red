@@ -93,6 +93,30 @@ test.describe('F17 subneteo', () => {
     await expect(page.getByRole('link', { name: 'Subneteo' })).toHaveAttribute('aria-current', 'page')
   })
 
+  test('F17-E4 ir y volver sin recargar la página', async ({ page }) => {
+    await fresh(page)
+    // a full reload would wipe this marker
+    await page.evaluate(() => ((window as unknown as { marker: number }).marker = 1))
+    const marker = () => page.evaluate(() => (window as unknown as { marker?: number }).marker)
+    await page.getByRole('link', { name: 'Subneteo' }).click()
+    await expect(page.getByRole('heading', { name: 'Subneteo', level: 1 })).toBeVisible()
+    await expect(page).toHaveURL(/\/subneteo\//)
+    expect(await marker()).toBe(1)
+    // clicking it again while there does nothing
+    await page.getByRole('link', { name: 'Subneteo' }).click()
+    await expect(page.getByLabel('Dirección IPv4 y prefijo')).toBeVisible()
+    expect(await marker()).toBe(1)
+    // back to a lesson from the menu, then Back to the calculator
+    await page.getByRole('button', { name: 'Protocolos', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Protocolos' }).getByRole('button', { name: /^DNS/ }).first().click()
+    await expect(page.getByRole('heading', { name: 'Flujo de paquetes' })).toBeVisible()
+    await expect(page).toHaveURL(/\/dns\//)
+    expect(await marker()).toBe(1)
+    await page.goBack()
+    await expect(page.getByRole('heading', { name: 'Subneteo', level: 1 })).toBeVisible()
+    expect(await marker()).toBe(1)
+  })
+
   test('F17-A1 accesibilidad y móvil', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 })
     for (const hash of ['', '#vlsm=10.0.0.0/24;Ventas:50;Dirección general:20', '#practicar']) {
