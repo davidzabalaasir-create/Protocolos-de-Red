@@ -2,7 +2,7 @@
 
 Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de **66 lecciones** (62 protocolos y 4 escenarios de fallo) paso a paso, en un diagrama de red, un diagrama de secuencia y una tabla tipo Wireshark, con **cada paquete decodificado byte a byte**.
 
-**🌐 En vivo: https://protocolos-de-red-eight.vercel.app**
+**🌐 En vivo: https://protocolos-de-red-eight.vercel.app** (Vercel) · https://protocolos-de-red.david-zabala-asir.workers.dev (Cloudflare)
 
 **Diseñado por David.** Interfaz inspirada en [Protocol Explorer](https://protocol-explorer-alpha.vercel.app/), reconstruida desde cero con React + Tailwind CSS y contenido propio en español.
 
@@ -73,3 +73,10 @@ Stack: Vite, React 19, TypeScript, Tailwind CSS v4 y Lucide React. Estadísticas
 | 4.1.3 Mensajes de estado | Región `aria-live` anuncia cada paquete y su explicación. |
 
 Los colores de cada tipo de paquete usan tonos más oscuros en el tema claro, con contraste ≥ 4,5:1 sobre el fondo.
+
+### Publicar en Cloudflare
+
+```bash
+npm run build
+npx wrangler deploy
+```
