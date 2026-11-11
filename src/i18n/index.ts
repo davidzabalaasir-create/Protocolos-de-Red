@@ -4,12 +4,13 @@ import { LESSONS_EN_1 } from './en-lessons-1'
 import { LESSONS_EN_2 } from './en-lessons-2'
 import { LESSONS_EN_3 } from './en-lessons-3'
 import { LESSONS_EN_4 } from './en-lessons-4'
+import { LESSONS_EN_5 } from './en-lessons-5'
 import type { Lang, LessonText } from './types'
 import { UI_EN } from './ui-en'
 
 export type { Lang } from './types'
 
-export const LESSONS_EN: Record<string, LessonText> = { ...LESSONS_EN_1, ...LESSONS_EN_2, ...LESSONS_EN_3, ...LESSONS_EN_4 }
+export const LESSONS_EN: Record<string, LessonText> = { ...LESSONS_EN_1, ...LESSONS_EN_2, ...LESSONS_EN_3, ...LESSONS_EN_4, ...LESSONS_EN_5 }
 
 // ── language store (persisted, shared by every component) ─────────────────
 const KEY = 'protocolos:lang'
@@ -101,6 +102,12 @@ export const nodeLabel = (lang: Lang, id: NodeId, es: string) => (lang === 'en' 
 
 /** Literal phrase swaps for the packet "Info" column (the decoder keeps reading the Spanish original). */
 const INFO_EN: [string, string][] = [
+  ['(retransmisión)', '(retransmission)'],
+  ['(duplicado)', '(duplicate)'],
+  ['(caducado)', '(expired)'],
+  ['(renovar)', '(renew)'],
+  ['(dirección ya asignada, rango lleno)', '(address taken, pool full)'],
+  ['(reintento)', '(retry)'],
   ['Petición: tabla completa', 'Request: full table'],
   ['(nuevo maestro)', '(new master)'],
   ['Anuncio VRID', 'Advertisement VRID'],
@@ -222,7 +229,7 @@ export function localize(p: Protocol, lang: Lang): Protocol {
   return out
 }
 
-const NAME_EN: Record<string, string> = { ethernet: 'Ethernet & switches', captive: 'Captive portal', proxy: 'HTTP proxy', reverse: 'Reverse proxy' }
+const NAME_EN: Record<string, string> = { ethernet: 'Ethernet & switches', captive: 'Captive portal', proxy: 'HTTP proxy', reverse: 'Reverse proxy', 'tcp-loss': 'TCP: loss and retransmission', 'dns-nxdomain': 'DNS: non-existent domain', 'tls-expired': 'TLS: expired certificate', 'dhcp-full': 'DHCP: no free addresses' }
 
 /** Lesson name (most are acronyms and stay the same in English). */
 export const displayName = (lang: Lang, p: { id: string; name: string }) => (lang === 'en' ? (NAME_EN[p.id] ?? p.name) : p.name)

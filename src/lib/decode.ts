@@ -199,11 +199,12 @@ function dnsPayload(w: Writer, p: Packet, isResponse: boolean) {
   const answer = p.info.match(/A (\d+\.\d+\.\d+\.\d+)/)
   const ptr = /PTR/.test(p.info)
   const hasAnswer = isResponse && (!!answer || ptr)
-  const name = p.info.match(/([\w-]+(?:\.[\w-]+)*\.local)\b/)?.[1] ?? 'www.ejemplo.com'
+  const name = p.info.match(/([\w-]+(?:\.[\w-]+)*\.(?:local|com|org|net))\b/)?.[1] ?? 'www.ejemplo.com'
+  const nx = /NXDOMAIN/.test(p.info)
   const encode = (n: string) => n.split('.').flatMap((l) => [l.length, ...ascii(l)]).concat(0)
   w.field('ID de transacción', mdns ? '0 (mDNS)' : hex2(id), u16(id))
-  const flags = mdns ? (isResponse ? 0x8400 : 0) : isResponse ? (answer ? 0x8180 : 0x8100) : 0x0100
-  const flagText = mdns ? (isResponse ? 'respuesta autoritativa' : 'consulta') : `${isResponse ? 'respuesta' : 'consulta'}, recursión ${isResponse ? 'disponible' : 'deseada'}`
+  const flags = mdns ? (isResponse ? 0x8400 : 0) : isResponse ? (nx ? 0x8183 : answer ? 0x8180 : 0x8100) : 0x0100
+  const flagText = mdns ? (isResponse ? 'respuesta autoritativa' : 'consulta') : nx ? 'respuesta, RCODE 3 = NXDOMAIN (no existe)' : `${isResponse ? 'respuesta' : 'consulta'}, recursión ${isResponse ? 'disponible' : 'deseada'}`
   w.field('Flags', `${hex2(flags)} (${flagText})`, u16(flags))
   w.field('Preguntas', mdns && isResponse ? '0' : '1', u16(mdns && isResponse ? 0 : 1))
   w.field('Respuestas', hasAnswer ? '1' : '0', u16(hasAnswer ? 1 : 0))
@@ -234,15 +235,15 @@ function dnsPayload(w: Writer, p: Packet, isResponse: boolean) {
 }
 
 function dhcpPayload(w: Writer, p: Packet, fromClient: boolean) {
-  const type = /Discover/.test(p.info) ? 1 : /Offer/.test(p.info) ? 2 : /Request/.test(p.info) ? 3 : 5
-  const names = { 1: 'DISCOVER', 2: 'OFFER', 3: 'REQUEST', 5: 'ACK' } as Record<number, string>
+  const type = /Discover/.test(p.info) ? 1 : /Offer/.test(p.info) ? 2 : /Request/.test(p.info) ? 3 : /NAK/.test(p.info) ? 6 : 5
+  const names = { 1: 'DISCOVER', 2: 'OFFER', 3: 'REQUEST', 5: 'ACK', 6: 'NAK' } as Record<number, string>
   w.field('Op', fromClient ? 'BOOTREQUEST (1)' : 'BOOTREPLY (2)', u8(fromClient ? 1 : 2))
   w.field('Hardware', 'Ethernet, 6 bytes', [1, 6])
   w.field('Saltos', '0', u8(0))
   w.field('ID de transacción', '0x3903f326', u32(0x3903f326))
   w.field('Segundos / Flags', '0 / broadcast', [0, 0, 0x80, 0])
   w.field('IP del cliente', '0.0.0.0', [0, 0, 0, 0])
-  const yi = fromClient ? '0.0.0.0' : '192.168.1.10'
+  const yi = fromClient || type === 6 ? '0.0.0.0' : '192.168.1.10'
   w.field('IP asignada (yiaddr)', yi, ipBytes(yi))
   w.field('IP del servidor', fromClient ? '0.0.0.0' : '192.168.1.1', fromClient ? [0, 0, 0, 0] : ipBytes('192.168.1.1'))
   w.field('IP del relay', '0.0.0.0', [0, 0, 0, 0])
@@ -306,6 +307,14 @@ function bgpPayload(w: Writer, p: Packet) {
 
 function cryptoPayload(w: Writer, p: Packet) {
   const seed = p.info + p.t
+  if (p.proto === 'TLS' && /Alert/.test(p.info)) {
+    w.field('Tipo de registro', 'Alert (21)', [21])
+    w.field('Versión', 'TLS 1.2 (0x0303, compatibilidad)', [3, 3])
+    w.field('Longitud', '2', u16(2))
+    w.field('Nivel', 'fatal (2)', [2])
+    w.field('Descripción', 'certificate_expired (45)', [45])
+    return
+  }
   if (p.proto === 'TLS') {
     const ct = /Hello|Certificate/.test(p.info) ? 0x16 : /Finished/.test(p.info) ? 0x16 : 0x17
     const n = Math.min(/Server/.test(p.info) ? 120 : 96, MAX_PAYLOAD)
@@ -1260,7 +1269,8 @@ export function decodePacket(p: Packet, opts: { full?: boolean } = {}): Frame {
 
   // Transport
   const l4Start = w.pos()
-  const ports = p.info.match(/(\d+) → (\d+)/)
+  // ports only when the summary starts with them ("52344 → 80 …"); "0.0.0.0 → 255.255.255.255" is not a port pair
+  const ports = p.info.match(/^(\d+) → (\d+)/)
   const clientPort = 'clientPort' in tr && tr.clientPort ? tr.clientPort : 52344
   const serverPort = tr.kind === 'tcp' || tr.kind === 'udp' ? tr.port : 0
   const sport = ports ? Number(ports[1]) : fromClient ? clientPort : serverPort

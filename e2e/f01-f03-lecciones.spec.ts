@@ -5,7 +5,7 @@ test.describe('F01 elegir una lección', () => {
     await fresh(page)
     const list = await openList(page)
     await list.getByRole('button', { name: /^DNS Sistema/ }).click()
-    await expect(page).toHaveURL(/#dns$/)
+    await expect(page).toHaveURL(/\/dns\/$/)
     await expect(page.getByText('Sistema de nombres de dominio').first()).toBeVisible()
   })
 
@@ -15,7 +15,7 @@ test.describe('F01 elegir una lección', () => {
     await expect(page.getByRole('combobox', { name: 'Buscar protocolos' })).toBeFocused()
     await page.keyboard.type('quic')
     await page.keyboard.press('Enter')
-    await expect(page).toHaveURL(/#http3$/)
+    await expect(page).toHaveURL(/\/http3\/$/)
   })
 
   test('F01-H3 filtrar por capa OSI', async ({ page }) => {
@@ -81,12 +81,14 @@ test.describe('F02 reproducir una lección', () => {
     await expect(stepBtn(page)).toBeDisabled()
   })
 
-  test('F02-E2 recargar a mitad', async ({ page }) => {
+  test('F02-E2 recargar a mitad retoma el mismo paquete', async ({ page }) => {
     await fresh(page)
     await stepBtn(page).click()
     await stepBtn(page).click()
     await page.reload()
-    await expect(page.getByRole('progressbar', { name: 'Progreso de la captura' })).toHaveAttribute('aria-valuetext', 'Paquete 0 de 8')
+    // the step lives in the address, so a reload resumes at the same packet
+    await expect(page).toHaveURL(/#2$/)
+    await expect(page.getByRole('progressbar', { name: 'Progreso de la captura' })).toHaveAttribute('aria-valuetext', 'Paquete 2 de 8')
   })
 
   test('F02-E3 solo teclado', async ({ page }) => {
@@ -138,5 +140,34 @@ test.describe('F02 la página no salta al avanzar', () => {
     expect(await page.evaluate(() => window.scrollY), 'la página no debe moverse').toBe(0)
     const tableScroll = await page.locator('table').evaluate((t) => (t.parentElement as HTMLElement).scrollTop)
     expect(tableScroll, 'la tabla sí se desplaza hasta el paquete actual').toBeGreaterThan(0)
+  })
+})
+
+test.describe('F12 direcciones', () => {
+  test('F12-H1 enlace directo a un paso', async ({ page }) => {
+    await page.goto('/tcp/#3')
+    await expect(page.getByRole('progressbar', { name: 'Progreso de la captura' })).toHaveAttribute('aria-valuetext', 'Paquete 3 de 8')
+    await expect(page.getByRole('img', { name: /Paquete 3 de 8/ })).toBeVisible()
+  })
+
+  test('F12-H2 el paso se refleja en la dirección', async ({ page }) => {
+    await fresh(page, 'udp')
+    await stepBtn(page).click()
+    await stepBtn(page).click()
+    await expect(page).toHaveURL(/\/udp\/#2$/)
+  })
+
+  test('F12-H3 Atrás vuelve a la lección anterior', async ({ page }) => {
+    await fresh(page, 'dns')
+    await page.evaluate(() => (location.hash = 'arp'))
+    await expect(page).toHaveURL(/\/arp\/$/)
+    await page.goBack()
+    await expect(page).toHaveURL(/\/dns\/$/)
+    await expect(page.getByRole('img', { name: /Diagrama de red de DNS/ })).toBeVisible()
+  })
+
+  test('F12-E1 enlaces antiguos con almohadilla', async ({ page }) => {
+    await page.goto('/#smtp/2')
+    await expect(page).toHaveURL(/\/smtp\/#2$/)
   })
 })

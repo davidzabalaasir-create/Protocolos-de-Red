@@ -1,4 +1,4 @@
-import { CircleCheck, Route } from 'lucide-react'
+import { CircleCheck, GraduationCap, Route } from 'lucide-react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
 import { QUIZ } from '../data/quiz'
 import { TOUR } from '../data/tour'
@@ -7,6 +7,7 @@ import { isDone, type Progress } from '../lib/progress'
 import { Button } from './ui/Button'
 
 interface Props {
+  onExam?: () => void
   layer: number | null
   currentId: string
   progress: Progress
@@ -31,7 +32,7 @@ export function ListProgress({ progress }: { progress: Progress }) {
 }
 
 /** Lessons grouped by OSI layer, with the layer filter and the guided-tour shortcut. */
-export function ProtocolList({ layer, currentId, progress, onSelect, onLayer }: Props) {
+export function ProtocolList({ layer, currentId, progress, onSelect, onLayer, onExam }: Props) {
   const t = useT()
   const lang = useLang()
   const layers = [7, 6, 5, 4, 3, 2, 1].filter((l) => (layer === null || l === layer) && PROTOCOLS.some((p) => p.layer === l))
@@ -52,6 +53,12 @@ export function ProtocolList({ layer, currentId, progress, onSelect, onLayer }: 
           <Route aria-hidden className="size-4" />
           {t('Empezar el recorrido guiado ({n} lecciones)', { n: TOUR.length })}
         </Button>
+        {onExam && (
+          <Button className="mt-2 w-full" onClick={onExam}>
+            <GraduationCap aria-hidden className="size-4" />
+            {t('Modo examen')}
+          </Button>
+        )}
       </div>
 
       <nav aria-label={t('Lista de protocolos')} className="p-2">

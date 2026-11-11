@@ -463,7 +463,7 @@ function NetworkDiagram({ protocol, packet, step, speed, summary }: { protocol: 
   )
 }
 
-const SequenceDiagram = memo(function SequenceDiagram({ protocol, step, summary }: { protocol: Protocol; step: number; summary: string }) {
+export const SequenceDiagram = memo(function SequenceDiagram({ protocol, step, summary }: { protocol: Protocol; step: number; summary: string }) {
   const t = useT()
   const lang = useLang()
   const actors = useMemo(() => [...new Set(protocol.packets.flatMap((p) => [p.from, p.to]))], [protocol])

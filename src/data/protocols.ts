@@ -2,6 +2,7 @@ import { tcpHandshake } from './helpers'
 import { MORE_PROTOCOLS } from './more'
 import { MORE_PROTOCOLS_2 } from './more2'
 import { MORE_PROTOCOLS_3 } from './more3'
+import { FAILURE_PROTOCOLS } from './failures'
 
 export type NodeId =
   | 'client'
@@ -185,6 +186,8 @@ export interface Protocol {
   description: string
   facts: [string, string][]
   packets: Packet[]
+  /** For failure scenarios: the normal lesson this one breaks */
+  failureOf?: string
 }
 
 export const OSI_LAYERS: Record<number, string> = {
@@ -581,7 +584,7 @@ const BASE_PROTOCOLS: Protocol[] = [
   },
 ]
 
-export const PROTOCOLS: Protocol[] = [...BASE_PROTOCOLS, ...MORE_PROTOCOLS, ...MORE_PROTOCOLS_2, ...MORE_PROTOCOLS_3]
+export const PROTOCOLS: Protocol[] = [...BASE_PROTOCOLS, ...MORE_PROTOCOLS, ...MORE_PROTOCOLS_2, ...MORE_PROTOCOLS_3, ...FAILURE_PROTOCOLS]
 
 const routeCache = new Map<string, NodeId[]>()
 

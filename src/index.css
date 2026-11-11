@@ -224,3 +224,61 @@ dialog::backdrop {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* exam sheet: hidden on screen, the only thing printed */
+.print-only {
+  display: none;
+}
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .exam,
+  .exam .print-only,
+  .exam .print-only * {
+    visibility: visible;
+  }
+  .exam {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: #fff;
+    color: #0f1a33;
+  }
+  .exam .no-print {
+    display: none;
+  }
+  .exam .print-only {
+    display: block;
+    padding: 2rem;
+    font-family: ui-monospace, monospace;
+  }
+  .print-only h1 {
+    font-size: 1.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .print-only h2 {
+    margin-top: 0.3rem;
+    font-size: 1.1rem;
+  }
+  .print-only .print-name {
+    margin-top: 1.5rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+  .print-only .print-score {
+    margin: 0.6rem 0;
+    font-size: 2rem;
+    font-weight: 800;
+  }
+  .print-only ol {
+    margin-top: 1rem;
+    line-height: 1.7;
+  }
+  .print-only .print-foot {
+    margin-top: 2rem;
+    font-size: 0.8rem;
+    color: #47546b;
+  }
+}

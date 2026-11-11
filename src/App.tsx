@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { packetTiming } from './lib/timing'
+import { lessonUrl, parseUrl } from './lib/url'
 import { Header } from './components/Header'
 import { PacketFlow } from './components/PacketFlow'
 import { ProtocolDrawer, ProtocolSidebar } from './components/ProtocolDrawer'
@@ -7,6 +8,10 @@ import { SidePanel, type PanelTab } from './components/SidePanel'
 import { Stage } from './components/Stage'
 import { Toolbar } from './components/Toolbar'
 import { TourBar } from './components/TourBar'
+import { Compare, partnerOf } from './components/Compare'
+import { Exam } from './components/Exam'
+import { EmbedDialog } from './components/EmbedDialog'
+import { EmbedFrame } from './components/EmbedFrame'
 import { PROTOCOLS } from './data/protocols'
 import { displayName, localize, useLang, useT } from './i18n'
 import { TOUR } from './data/tour'
@@ -33,8 +38,15 @@ const safeSet = (k: string, v: string) => {
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>(() => (document.documentElement.dataset.theme as Theme) ?? 'dark')
-  const [protocolId, setProtocolId] = useState(() => location.hash.slice(1) || 'http')
-  const [step, setStep] = useState(-1)
+  const initial = useMemo(() => parseUrl(), [])
+  const [protocolId, setProtocolId] = useState(() => initial.id ?? 'http')
+  const [step, setStep] = useState(() => {
+    const lesson = PROTOCOLS.find((p) => p.id === (initial.id ?? 'http'))
+    return initial.step !== null && lesson ? Math.max(-1, Math.min(initial.step, lesson.packets.length - 1)) : -1
+  })
+  const [compare, setCompare] = useState<[string, string] | null>(initial.compare)
+  const [exam, setExam] = useState(initial.exam)
+  const embed = initial.embed
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeedState] = useState(() => {
     const v = Number(safeGet('protocolos:speed'))
@@ -84,11 +96,19 @@ export default function App() {
     }
   }, [theme])
 
+  // keep the address in sync: a new lesson is a new history entry, a new step just updates it
+  const lastId = useRef(protocol.id)
   useEffect(() => {
-    history.replaceState(null, '', `#${protocol.id}`)
+    const url = compare ? `${lessonUrl(protocol.id, -1, embed)}#comparar=${compare.join(',')}` : exam ? `${lessonUrl(protocol.id, -1, embed)}#examen` : lessonUrl(protocol.id, step, embed)
+    if (location.pathname + location.search + location.hash === url) return
+    if (lastId.current !== protocol.id) history.pushState(null, '', url)
+    else history.replaceState(null, '', url)
+    lastId.current = protocol.id
+  }, [protocol.id, step, compare, exam, embed])
+  useEffect(() => {
     document.title = `${protocol.name} · Protocolos de Red`
     document.documentElement.lang = lang
-  }, [protocol.id, protocol.name, lang])
+  }, [protocol.name, lang])
 
   // a lesson counts as watched once its last packet is reached
   useEffect(() => {
@@ -143,6 +163,13 @@ export default function App() {
     setPlaying(true)
   }, [])
   const openQuiz = useCallback(() => setTab('quiz'), [])
+  const [embedOpen, setEmbedOpen] = useState(false)
+  const openCompare = useCallback((id: string) => setCompare([id, partnerOf(id)]), [])
+  const openEmbed = useCallback(() => setEmbedOpen(true), [])
+  const openExam = useCallback(() => {
+    setDrawer(false)
+    setExam(true)
+  }, [])
   const onScore = useCallback((score: number) => setQuizScore(protocolId, score), [protocolId, setQuizScore])
   const openMenu = useCallback(() => {
     if (wide && !focus) setSidebar(!sidebar)
@@ -176,15 +203,38 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [toggleFocus])
 
-  // follow #protocol links typed in the address bar or shared
+  // follow links typed in the address bar, shared, or reached with Back/Forward
   useEffect(() => {
-    const onHash = () => {
-      const id = location.hash.slice(1)
-      if (PROTOCOLS.some((p) => p.id === id)) select(id)
+    const onNav = () => {
+      const r = parseUrl()
+      setCompare(r.compare)
+      setExam(r.exam)
+      const changed = !!r.id && r.id !== lastId.current
+      if (changed) {
+        lastId.current = r.id!
+        setProtocolId(r.id!)
+        setPlaying(false)
+      }
+      const lesson = PROTOCOLS.find((p) => p.id === (r.id ?? lastId.current))
+      // a bare in-page anchor (like the skip link) must not reset the lesson
+      if (r.step !== null && lesson) setStep(Math.max(-1, Math.min(r.step, lesson.packets.length - 1)))
+      else if (changed) setStep(-1)
     }
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
-  }, [select])
+    window.addEventListener('hashchange', onNav)
+    window.addEventListener('popstate', onNav)
+    return () => {
+      window.removeEventListener('hashchange', onNav)
+      window.removeEventListener('popstate', onNav)
+    }
+  }, [])
+
+  if (embed)
+    return (
+      <EmbedFrame protocol={protocol}>
+        <Stage protocol={protocol} step={step} speed={speed} onStep={goTo} onReplay={replay} onQuiz={openQuiz} next={null} onNext={select} focus onFocus={() => {}} />
+        <PacketFlow protocol={protocol} step={step} playing={playing} speed={speed} onSpeed={setSpeed} onStep={goTo} onPlay={togglePlay} onReset={reset} onInspect={goTo} />
+      </EmbedFrame>
+    )
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -203,7 +253,7 @@ export default function App() {
 
       <div className="flex flex-1 items-start gap-3 px-3 pb-3 sm:px-4">
       {showSidebar && (
-        <ProtocolSidebar layer={layerFilter} currentId={protocol.id} progress={progress} onSelect={select} onLayer={setLayerFilter} onHide={() => setSidebar(false)} />
+        <ProtocolSidebar layer={layerFilter} currentId={protocol.id} progress={progress} onSelect={select} onLayer={setLayerFilter} onHide={() => setSidebar(false)} onExam={openExam} />
       )}
       <main id="main" className="flex min-w-0 flex-1 flex-col gap-3">
         <h1 className="sr-only">Protocolos de Red: {protocol.name}</h1>
@@ -219,6 +269,9 @@ export default function App() {
             done={isDone(progress, protocol.id, QUIZ[protocol.id]?.length ?? 0)}
             bestScore={progress.quiz[protocol.id]}
             onScore={onScore}
+            onSelect={select}
+            onCompare={openCompare}
+            onEmbed={openEmbed}
           />
           )}
         </div>
@@ -251,7 +304,11 @@ export default function App() {
         }}
         onSelect={select}
         onLayer={setLayerFilter}
+        onExam={openExam}
       />
+      {compare && <Compare pair={compare} onChange={setCompare} onClose={() => setCompare(null)} />}
+      {exam && <Exam progress={progress} onClose={() => setExam(false)} />}
+      {embedOpen && <EmbedDialog protocol={protocol} onClose={() => setEmbedOpen(false)} />}
     </div>
   )
 }

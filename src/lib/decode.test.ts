@@ -135,3 +135,13 @@ describe('textos de la interfaz', () => {
     expect(missing).toEqual([])
   })
 })
+
+describe('regresiones del decodificador', () => {
+  it('DHCP usa los puertos 68 → 67 aunque el resumen tenga flechas entre IP', () => {
+    const p = PROTOCOLS.find((x) => x.id === 'dhcp')!.packets[0]
+    const f = decodePacket(p)
+    const udp = f.layers.find((l) => l.id === 'udp')!
+    expect(udp.fields.find((x) => x.name === 'Puerto origen')!.value).toBe('68')
+    expect(udp.fields.find((x) => x.name === 'Puerto destino')!.value).toBe('67')
+  })
+})

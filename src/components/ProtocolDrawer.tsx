@@ -6,6 +6,7 @@ import { ListProgress, ProtocolList } from './ProtocolList'
 import { Button } from './ui/Button'
 
 interface Props {
+  onExam?: () => void
   open: boolean
   layer: number | null
   currentId: string
@@ -16,7 +17,7 @@ interface Props {
 }
 
 /** Protocol list as a modal panel (narrow screens). Native <dialog> gives focus trapping and Escape. */
-export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSelect, onLayer }: Props) {
+export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSelect, onLayer, onExam }: Props) {
   const t = useT()
   const ref = useRef<HTMLDialogElement>(null)
 
@@ -46,13 +47,13 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
           <X aria-hidden className="size-5" />
         </Button>
       </div>
-      <ProtocolList layer={layer} currentId={currentId} progress={progress} onSelect={onSelect} onLayer={onLayer} />
+      <ProtocolList layer={layer} currentId={currentId} progress={progress} onSelect={onSelect} onLayer={onLayer} onExam={onExam} />
     </dialog>
   )
 }
 
 /** Protocol list as a fixed, collapsible sidebar (wide screens). */
-export function ProtocolSidebar({ layer, currentId, progress, onSelect, onLayer, onHide }: Omit<Props, 'open' | 'onClose'> & { onHide: () => void }) {
+export function ProtocolSidebar({ layer, currentId, progress, onSelect, onLayer, onHide, onExam }: Omit<Props, 'open' | 'onClose'> & { onHide: () => void }) {
   const t = useT()
   return (
     <aside
@@ -71,7 +72,7 @@ export function ProtocolSidebar({ layer, currentId, progress, onSelect, onLayer,
         </Button>
       </div>
       <div className="flex-1 overflow-y-auto">
-        <ProtocolList layer={layer} currentId={currentId} progress={progress} onSelect={onSelect} onLayer={onLayer} />
+        <ProtocolList layer={layer} currentId={currentId} progress={progress} onSelect={onSelect} onLayer={onLayer} onExam={onExam} />
       </div>
     </aside>
   )

@@ -250,6 +250,22 @@ export const QUIZ: Record<string, Question[]> = {
     { q: '¿Qué contiene el paquete mágico?', options: ['6 bytes 0xFF y la MAC repetida 16 veces', 'Una contraseña', 'La IP del equipo'], answer: 0, why: 'La tarjeta de red reconoce ese patrón con su propia MAC.' },
     { q: '¿Por qué se envía por difusión?', options: ['Porque el equipo apagado no tiene IP', 'Porque es más rápido', 'Por seguridad'], answer: 0, why: 'Sin IP ni tabla ARP, solo la difusión llega a su tarjeta.' },
   ],
+  'tcp-loss': [
+    { q: '¿Qué hace que TCP reenvíe un segmento sin esperar al temporizador?', options: ['Tres ACK duplicados', 'Una respuesta DNS', 'Un SYN'], answer: 0, why: 'Tres ACK repetidos disparan la retransmisión rápida.' },
+    { q: '¿Por qué repite el receptor el mismo ACK?', options: ['Porque le siguen faltando los bytes del hueco', 'Por cortesía', 'Para cerrar la conexión'], answer: 0, why: 'El ACK siempre indica el primer byte que aún no ha recibido.' },
+  ],
+  'dns-nxdomain': [
+    { q: '¿Qué significa NXDOMAIN?', options: ['Que el dominio no existe', 'Que el servidor está caído', 'Que la respuesta va cifrada'], answer: 0, why: 'RCODE 3: el nombre no existe.' },
+    { q: '¿Recuerda el resolutor la respuesta negativa?', options: ['Sí, un tiempo (caché negativa)', 'Nunca', 'Para siempre'], answer: 0, why: 'La guarda según el SOA de la zona.' },
+  ],
+  'tls-expired': [
+    { q: '¿Qué hace el navegador con un certificado caducado?', options: ['Envía una alerta fatal y corta', 'Lo acepta sin avisar', 'Pregunta al DNS'], answer: 0, why: 'Sin certificado válido no puede confiar en el servidor.' },
+    { q: '¿Se llega a enviar la petición HTTP?', options: ['No', 'Sí, cifrada', 'Sí, en claro'], answer: 0, why: 'La conexión se cierra antes de enviar nada de HTTP.' },
+  ],
+  'dhcp-full': [
+    { q: '¿Qué mensaje rechaza una petición DHCP?', options: ['NAK', 'ACK', 'Offer'], answer: 0, why: 'DHCPNAK indica al cliente que no puede usar esa dirección.' },
+    { q: '¿Qué indica una dirección 169.254.x.x?', options: ['Que DHCP falló y el equipo se la puso solo', 'Una IP pública', 'Una dirección de VPN'], answer: 0, why: 'APIPA: solo red local, sin Internet.' },
+  ],
   ble: [
     { q: '¿Cómo descubre el móvil una pulsera BLE?', options: ['Escuchando sus anuncios (ADV_IND)', 'Por DNS', 'Con un cable'], answer: 0, why: 'Los dispositivos se anuncian en los canales de publicidad.' },
     { q: '¿Qué protocolo se usa para leer datos como el pulso?', options: ['ATT/GATT', 'SMTP', 'BGP'], answer: 0, why: 'Los datos son atributos GATT leídos o notificados mediante ATT.' },

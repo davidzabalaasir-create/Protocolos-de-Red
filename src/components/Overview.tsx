@@ -1,9 +1,20 @@
+import { CircleCheckBig, Code, Columns2, TriangleAlert } from 'lucide-react'
 import { memo } from 'react'
-import { useT } from '../i18n'
-import type { Protocol } from '../data/protocols'
+import { displayName, useLang, useT } from '../i18n'
+import { Button } from './ui/Button'
+import { PROTOCOLS, type Protocol } from '../data/protocols'
 
-export const Overview = memo(function Overview({ protocol, done }: { protocol: Protocol; done: boolean }) {
+interface Actions {
+  onSelect: (id: string) => void
+  onCompare: (id: string) => void
+  onEmbed: () => void
+}
+
+export const Overview = memo(function Overview({ protocol, done, onSelect, onCompare, onEmbed }: { protocol: Protocol; done: boolean } & Actions) {
   const t = useT()
+  const lang = useLang()
+  const failures = PROTOCOLS.filter((p) => p.failureOf === protocol.id)
+  const normal = protocol.failureOf ? PROTOCOLS.find((p) => p.id === protocol.failureOf) : undefined
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex items-center justify-between gap-2">
@@ -27,6 +38,30 @@ export const Overview = memo(function Overview({ protocol, done }: { protocol: P
           </div>
         ))}
       </dl>
+      <div className="flex flex-col gap-2">
+        {failures.map((f) => (
+          <Button key={f.id} size="sm" onClick={() => onSelect(f.id)}>
+            <TriangleAlert aria-hidden className="size-4 text-[var(--k-err)]" />
+            {t('Ver qué pasa si falla: {name}', { name: displayName(lang, f) })}
+          </Button>
+        ))}
+        {normal && (
+          <Button size="sm" onClick={() => onSelect(normal.id)}>
+            <CircleCheckBig aria-hidden className="size-4 text-[var(--k-tcp)]" />
+            {t('Volver a la lección normal: {name}', { name: displayName(lang, normal) })}
+          </Button>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="ghost" onClick={() => onCompare(protocol.id)}>
+            <Columns2 aria-hidden className="size-4" />
+            {t('Comparar')}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onEmbed}>
+            <Code aria-hidden className="size-4" />
+            {t('Incrustar')}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 })

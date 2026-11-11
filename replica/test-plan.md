@@ -5,7 +5,7 @@ No existe `replica/recon.md`, así que los flujos salen de la propia app. Las pr
 No aplican: contraseñas, pagos, sesiones, datos de otros usuarios ni zonas horarias, porque la app no tiene cuentas ni servidor.
 
 ## F01 · Elegir una lección
-- **F01-H1** Abrir la lista de protocolos y elegir DNS: el título y la vista general muestran DNS y el enlace pasa a `#dns`.
+- **F01-H1** Abrir la lista de protocolos y elegir DNS: el título y la vista general muestran DNS y la dirección pasa a `/dns/`.
 - **F01-H2** Buscar «quic» con Ctrl K y pulsar Enter: se abre HTTP/3.
 - **F01-H3** Pulsar la capa OSI 2: la lista se filtra por «Enlace de datos».
 - **F01-E1** Abrir un enlace a un protocolo que no existe (`#noexiste`): se abre la lección por defecto, sin errores.
@@ -17,7 +17,7 @@ No aplican: contraseñas, pagos, sesiones, datos de otros usuarios ni zonas hora
 - **F02-H2** Pulsar Reproducir a 2×: llega al último paquete y aparece «Lección completada».
 - **F02-H3** Pulsar una etapa de la franja: salta a su primer paquete.
 - **F02-E1** Pulsar Paso muchas veces seguidas (más que paquetes): no pasa del último ni falla.
-- **F02-E2** Recargar a mitad de reproducción: vuelve al inicio sin errores.
+- **F02-E2** Recargar a mitad de reproducción: retoma el mismo paquete (el paso está en la dirección), sin errores.
 - **F02-E3** Solo teclado: Espacio reproduce y pausa; las flechas avanzan y retroceden.
 
 ## F03 · Inspeccionar bytes

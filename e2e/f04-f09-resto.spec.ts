@@ -68,7 +68,7 @@ test.describe('F06 recorrido guiado', () => {
     const tour = page.getByRole('navigation', { name: 'Recorrido guiado' })
     await expect(tour.getByText('Recorrido guiado · 1/15')).toBeVisible()
     await tour.getByRole('button', { name: 'ARP', exact: true }).click()
-    await expect(page).toHaveURL(/#arp$/)
+    await expect(page).toHaveURL(/\/arp\/$/)
   })
 })
 
@@ -137,4 +137,76 @@ test.describe('F11 protocolos nuevos', () => {
       await expect(page.getByRole('heading', { name: 'Lección completada' })).toBeVisible({ timeout: 20_000 })
     })
   }
+})
+
+test.describe('F13 escenarios de fallo', () => {
+  test('F13-H1 de TCP al escenario de pérdida y vuelta', async ({ page }) => {
+    await fresh(page, 'tcp')
+    await page.getByRole('button', { name: /Ver qué pasa si falla: TCP: pérdida/ }).click()
+    await expect(page).toHaveURL(/\/tcp-loss\/$/)
+    await page.getByRole('radio', { name: '2×' }).click()
+    await page.getByRole('button', { name: 'Reproducir' }).click()
+    await expect(page.getByRole('heading', { name: 'Lección completada' })).toBeVisible({ timeout: 25_000 })
+    await page.getByRole('button', { name: /Volver a la lección normal: TCP/ }).click()
+    await expect(page).toHaveURL(/\/tcp\/$/)
+  })
+})
+
+test.describe('F14 comparar', () => {
+  test('F14-H1 comparar TCP con UDP y cambiar uno', async ({ page }) => {
+    await fresh(page, 'tcp')
+    await page.getByRole('button', { name: 'Comparar' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Comparar protocolos' })
+    await expect(dialog).toBeVisible()
+    await expect(page).toHaveURL(/#comparar=tcp,udp$/)
+    await expect(dialog.getByRole('table')).toContainText('Paquetes')
+    await dialog.getByRole('combobox', { name: 'Protocolo B' }).selectOption('quic' === 'x' ? '' : 'http3')
+    await expect(page).toHaveURL(/#comparar=tcp,http3$/)
+    expect(await axe(page), 'comparación').toEqual([])
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(page).toHaveURL(/\/tcp\/$/)
+  })
+
+  test('F14-H2 enlace directo a una comparación', async ({ page }) => {
+    await page.goto('/#comparar=http2,http3')
+    await expect(page.getByRole('dialog', { name: 'Comparar protocolos' })).toBeVisible()
+  })
+})
+
+test.describe('F15 modo examen', () => {
+  test('F15-H1 responder, corregir y nota', async ({ page }) => {
+    await fresh(page)
+    const list = await openList(page)
+    await list.getByRole('button', { name: 'Modo examen' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Modo examen' })
+    await expect(dialog).toBeVisible()
+    const groups = dialog.getByRole('group')
+    const n = await groups.count()
+    expect(n).toBe(10)
+    for (let i = 0; i < n; i++) await groups.nth(i).getByRole('radio').first().click()
+    await dialog.getByRole('button', { name: 'Corregir examen' }).click()
+    await expect(dialog.getByText(/Nota: \d+\/10/).first()).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Imprimir o guardar en PDF' })).toBeVisible()
+    expect(await axe(page), 'examen').toEqual([])
+  })
+})
+
+test.describe('F16 incrustar', () => {
+  test('F16-H1 código para copiar', async ({ page }) => {
+    await fresh(page, 'dns')
+    await page.getByRole('button', { name: 'Incrustar' }).click()
+    const code = page.getByRole('textbox', { name: 'Código' })
+    await expect(code).toHaveValue(/<iframe src="https:\/\/protocolos-de-red-eight\.vercel\.app\/dns\/\?embed=1"/)
+  })
+
+  test('F16-H2 vista incrustada sin menús', async ({ page }) => {
+    await page.goto('/dns/?embed=1')
+    await expect(page.getByRole('img', { name: /Diagrama de red de DNS/ })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Abrir en Protocolos de Red/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Protocolos', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('combobox', { name: 'Buscar protocolos' })).toHaveCount(0)
+    await page.getByRole('button', { name: /^Paso$/ }).click()
+    await expect(page).toHaveURL(/\/dns\/\?embed=1#1$/)
+  })
 })

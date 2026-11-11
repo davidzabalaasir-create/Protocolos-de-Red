@@ -21,9 +21,12 @@ interface Props {
   done: boolean
   bestScore: number | undefined
   onScore: (score: number) => void
+  onSelect: (id: string) => void
+  onCompare: (id: string) => void
+  onEmbed: () => void
 }
 
-export function SidePanel({ protocol, step, tab, onTab, done, bestScore, onScore }: Props) {
+export function SidePanel({ protocol, step, tab, onTab, done, bestScore, onScore, onSelect, onCompare, onEmbed }: Props) {
   const t = useT()
   const move = (dir: number) => {
     const i = TABS.findIndex(([id]) => id === tab)
@@ -57,7 +60,7 @@ export function SidePanel({ protocol, step, tab, onTab, done, bestScore, onScore
         ))}
       </div>
       <div id="side-panel" role="tabpanel" aria-labelledby={`panel-tab-${tab}`} className="flex flex-1 flex-col overflow-y-auto">
-        {tab === 'overview' && <Overview protocol={protocol} done={done} />}
+        {tab === 'overview' && <Overview protocol={protocol} done={done} onSelect={onSelect} onCompare={onCompare} onEmbed={onEmbed} />}
         {tab === 'inspector' && <Inspector packet={step >= 0 ? protocol.packets[step] : null} index={step} />}
         {tab === 'quiz' && <Quiz key={protocol.id} protocolId={protocol.id} best={bestScore} onScore={onScore} />}
       </div>
