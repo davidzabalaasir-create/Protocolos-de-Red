@@ -30,9 +30,18 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
   const total = protocol.packets.length
   const last = total - 1
   const rowRef = useRef<HTMLTableRowElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    rowRef.current?.scrollIntoView({ block: 'nearest' })
+    // keep the current row visible by scrolling the table only — never the page,
+    // so the diagram stays on screen while the lesson plays
+    const row = rowRef.current
+    const box = scrollRef.current
+    if (!row || !box) return
+    const top = row.offsetTop - (box.querySelector('thead')?.offsetHeight ?? 0)
+    const bottom = row.offsetTop + row.offsetHeight + ((row.nextElementSibling as HTMLElement | null)?.offsetHeight ?? 0)
+    if (top < box.scrollTop) box.scrollTo({ top, behavior: 'smooth' })
+    else if (bottom > box.scrollTop + box.clientHeight) box.scrollTo({ top: bottom - box.clientHeight, behavior: 'smooth' })
   }, [step])
 
   // Space: play/pause · ←/→: previous/next · R: restart
@@ -134,7 +143,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
         </span>
       </div>
 
-      <div className="relative max-h-72 overflow-auto">
+      <div ref={scrollRef} className="relative max-h-72 overflow-auto">
         <table className="w-full min-w-[46rem] text-left text-xs">
           <caption className="sr-only">{t('Paquetes de {name}. Selecciona una fila para ir a ese paquete.', { name: protocol.name })}</caption>
           <thead className="sticky top-0 z-10 bg-panel">

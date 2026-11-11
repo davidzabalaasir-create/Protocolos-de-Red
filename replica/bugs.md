@@ -35,14 +35,31 @@ Actual: `label-content-name-mismatch` en `a[href="/"]`: el nombre era «Protocol
 Evidence: prueba F08-H1.
 Status: corregido en esta tanda: se quita el `aria-label` y el enlace se nombra por su texto visible.
 
+### BUG-003: Al avanzar, la página baja hasta la tabla y se pierde el diagrama
+
+- Severity: S3
+- Flow / case: F02 / F02-E4
+- Screen: principal
+- Build: f1cc41d · Chromium 1440×900 y Pixel 7
+
+Steps
+1. Abrir `/#ftp` con la página arriba del todo.
+2. Avanzar los 12 paquetes (flecha → o «Paso»).
+
+Expected: la página se queda donde está; solo la tabla se desplaza para mostrar el paquete actual.
+Actual: la página baja 474 px hasta la tabla en cada paso y el diagrama sale de la pantalla.
+Evidence: prueba F02-E4 (recibido 474, esperado 0) contra el código anterior; informado por el usuario.
+Suspected cause: `scrollIntoView` sobre la fila actual desplaza también la página, no solo el contenedor de la tabla.
+Status: corregido: se desplaza solo el contenedor de la tabla; F02-E4 queda como prueba de regresión.
+
 ## Resultado
 
 | | |
 |---|---|
-| Casos ejecutados | 68 (34 casos × escritorio y móvil; 1 omitido a propósito en móvil) |
-| Pasan | 67 + 1 omitido |
-| Fallos por gravedad | S1: 0 · S2: 0 · S3: 1 · S4: 1 |
-| Corregidos | 2 de 2 |
+| Casos ejecutados | 70 (35 casos × escritorio y móvil; 1 omitido a propósito en móvil) |
+| Pasan | 69 + 1 omitido |
+| Fallos por gravedad | S1: 0 · S2: 0 · S3: 2 · S4: 1 |
+| Corregidos | 3 de 3 |
 
 Además: 1 045 pruebas unitarias (decodificación, checksums, rutas, pcapng, traducciones).
 

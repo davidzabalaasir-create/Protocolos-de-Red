@@ -123,3 +123,20 @@ test.describe('F03 inspeccionar bytes', () => {
     await expect(ip).toHaveAttribute('aria-expanded', 'false')
   })
 })
+
+test.describe('F02 la página no salta al avanzar', () => {
+  test('F02-E4 avanzar no desplaza la página, solo la tabla', async ({ page }) => {
+    await fresh(page, 'ftp')
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.locator('body').click({ position: { x: 5, y: 5 } })
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press('ArrowRight')
+      await page.waitForTimeout(120)
+    }
+    await expect(page.getByRole('progressbar', { name: 'Progreso de la captura' })).toHaveAttribute('aria-valuetext', 'Paquete 12 de 12')
+    await page.waitForTimeout(600)
+    expect(await page.evaluate(() => window.scrollY), 'la página no debe moverse').toBe(0)
+    const tableScroll = await page.locator('table').evaluate((t) => (t.parentElement as HTMLElement).scrollTop)
+    expect(tableScroll, 'la tabla sí se desplaza hasta el paquete actual').toBeGreaterThan(0)
+  })
+})
