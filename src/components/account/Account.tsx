@@ -89,8 +89,39 @@ function AccountButton() {
   )
 }
 
+/** Clerk's sign-in window in the site's own colours, following the light/dark theme. */
+function readTheme() {
+  const css = getComputedStyle(document.documentElement)
+  const v = (name: string) => css.getPropertyValue(name).trim()
+  return {
+    colorPrimary: v('--accent'),
+    colorPrimaryForeground: v('--accent-fg'),
+    colorBackground: v('--panel'),
+    colorForeground: v('--fg'),
+    colorMuted: v('--panel-2'),
+    colorMutedForeground: v('--muted'),
+    colorInput: v('--bg'),
+    colorInputForeground: v('--fg'),
+    colorBorder: v('--line'),
+    colorDanger: v('--k-err'),
+    fontFamily: css.getPropertyValue('font-family'),
+    borderRadius: '0.5rem',
+  }
+}
+
+function useSiteTheme() {
+  const [vars, setVars] = useState(readTheme)
+  useEffect(() => {
+    const mo = new MutationObserver(() => setVars(readTheme()))
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => mo.disconnect()
+  }, [])
+  return vars
+}
+
 function Account({ publishableKey }: { publishableKey: string }) {
   const lang = useLang()
+  const variables = useSiteTheme()
   const [status, setStatus] = useState<Status>('idle')
   const [slot, setSlot] = useState<HTMLElement | null>(() => document.getElementById('account-slot'))
   // the header can be re-created (e.g. switching pages); follow its slot
@@ -104,7 +135,7 @@ function Account({ publishableKey }: { publishableKey: string }) {
     return () => mo.disconnect()
   }, [])
   return (
-    <ClerkProvider publishableKey={publishableKey} localization={lang === 'es' ? esES : undefined} afterSignOutUrl={location.pathname}>
+    <ClerkProvider publishableKey={publishableKey} localization={lang === 'es' ? esES : undefined} appearance={{ variables }} afterSignOutUrl={location.pathname}>
       <CloudSync onStatus={setStatus} />
       <StatusCtx.Provider value={status}>{slot && createPortal(<AccountButton />, slot)}</StatusCtx.Provider>
     </ClerkProvider>
