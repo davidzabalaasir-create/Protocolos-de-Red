@@ -23,6 +23,21 @@ export function prerenderLessons(): Plugin {
     },
     closeBundle() {
       const shell = readFileSync(join(outDir, 'index.html'), 'utf8')
+      const writePage = (dir: string, url: string, title: string, desc: string, body: string) => {
+        const html = shell
+          .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
+          .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
+          .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${url}$2`)
+          .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`)
+          .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(title)}$2`)
+          .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${esc(title)}$2`)
+          .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
+          .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
+          .replace('<div id="root"></div>', `<div id="root">${body}</div>`)
+        mkdirSync(join(outDir, dir), { recursive: true })
+        writeFileSync(join(outDir, dir, 'index.html'), html)
+      }
+
       for (const p of PROTOCOLS) {
         const url = `${SITE}/${p.id}/`
         const title = `${p.name}: cómo funciona paso a paso · Protocolos de Red`
@@ -35,21 +50,26 @@ export function prerenderLessons(): Plugin {
 <ol>${p.packets.map((k) => `<li><strong>${esc(k.proto)}</strong> · ${esc(k.info)}: ${esc(k.note)}</li>`).join('')}</ol>
 <p>Capa ${p.layer} (${esc(OSI_LAYERS[p.layer])}). Lección interactiva de <a href="/">Protocolos de Red</a>.</p>
 </main>`
-        const html = shell
-          .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
-          .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
-          .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${url}$2`)
-          .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`)
-          .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(title)}$2`)
-          .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${esc(title)}$2`)
-          .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
-          .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
-          .replace('<div id="root"></div>', `<div id="root">${body}</div>`)
-        mkdirSync(join(outDir, p.id), { recursive: true })
-        writeFileSync(join(outDir, p.id, 'index.html'), html)
+        writePage(p.id, url, title, desc, body)
       }
       const today = new Date().toISOString().slice(0, 10)
-      const urls = ['', ...PROTOCOLS.map((p) => `${p.id}/`)]
+      writePage(
+        'subneteo',
+        `${SITE}/subneteo/`,
+        'Calculadora de subredes y VLSM paso a paso · Protocolos de Red',
+        'Calcula red, broadcast, rango de hosts, máscara y wildcard de cualquier IPv4, reparte una red con VLSM y practica subneteo con corrección paso a paso.',
+        `<main>
+<h1>Subneteo: calculadora de subredes IPv4</h1>
+<p>Escribe una IP con su prefijo (por ejemplo 192.168.10.77/26) y obtén la dirección de red, el broadcast, el primer y el último host, el número de hosts útiles, la máscara y la wildcard, con la explicación bit a bit.</p>
+<h2>Dividir una red (VLSM)</h2>
+<p>Indica cuántos hosts necesita cada departamento y la calculadora asigna las subredes de mayor a menor, sin solaparse.</p>
+<h2>Practicar</h2>
+<p>Ejercicios al azar de red, broadcast, hosts, prefijo necesario y misma subred, con la solución explicada.</p>
+<p>Parte de <a href="/">Protocolos de Red</a>.</p>
+</main>`,
+      )
+
+      const urls = ['', 'subneteo/', ...PROTOCOLS.map((p) => `${p.id}/`)]
       writeFileSync(
         join(outDir, 'sitemap.xml'),
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE}/${u}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n</urlset>\n`,

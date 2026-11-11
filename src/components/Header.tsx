@@ -1,4 +1,4 @@
-import { Boxes, Menu, Moon, Sun } from 'lucide-react'
+import { Boxes, Menu, Moon, Network, Sun } from 'lucide-react'
 import { setLang, useLang, useT } from '../i18n'
 import { Button } from './ui/Button'
 
@@ -30,6 +30,15 @@ export function Header({ theme, onTheme, onOpenMenu }: Props) {
             {t('Aprende cómo funciona Internet')}
           </span>
         </span>
+      </a>
+
+      <a
+        href="/subneteo/"
+        aria-current={typeof location !== 'undefined' && location.pathname.startsWith('/subneteo') ? 'page' : undefined}
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-line-strong bg-panel px-3 text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2 aria-[current]:border-accent aria-[current]:bg-accent aria-[current]:text-accent-fg"
+      >
+        <Network aria-hidden className="size-4" />
+        {t('Subneteo')}
       </a>
 
       <div className="ml-auto flex items-center gap-3">

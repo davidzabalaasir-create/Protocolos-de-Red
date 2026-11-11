@@ -1,4 +1,4 @@
-import { CircleCheck, GraduationCap, Route } from 'lucide-react'
+import { CircleCheck, GraduationCap, Network, Route } from 'lucide-react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
 import { QUIZ } from '../data/quiz'
 import { TOUR } from '../data/tour'
@@ -59,6 +59,13 @@ export function ProtocolList({ layer, currentId, progress, onSelect, onLayer, on
             {t('Modo examen')}
           </Button>
         )}
+        <a
+          href="/subneteo/"
+          className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-panel px-4 text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2"
+        >
+          <Network aria-hidden className="size-4" />
+          {t('Calculadora de subredes')}
+        </a>
       </div>
 
       <nav aria-label={t('Lista de protocolos')} className="p-2">

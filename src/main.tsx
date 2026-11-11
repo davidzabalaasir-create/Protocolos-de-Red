@@ -1,9 +1,12 @@
-import { StrictMode } from 'react'
+import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { preferredLang, setLang } from './i18n'
 import { SITE } from './lib/site'
+
+const SubnetApp = lazy(() => import('./components/subnet/SubnetApp'))
+const isSubnet = /^\/subneteo\/?$/.test(location.pathname)
 
 // English visitors wait for their lesson text so they never see a flash of Spanish.
 const start = preferredLang() === 'en' ? setLang('en') : Promise.resolve()
@@ -11,7 +14,13 @@ const start = preferredLang() === 'en' ? setLang('en') : Promise.resolve()
 void start.then(() =>
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <App />
+      {isSubnet ? (
+        <Suspense fallback={null}>
+          <SubnetApp />
+        </Suspense>
+      ) : (
+        <App />
+      )}
     </StrictMode>,
   ),
 )
