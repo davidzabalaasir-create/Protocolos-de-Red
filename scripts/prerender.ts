@@ -1,4 +1,5 @@
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Plugin } from 'vite'
 import { OSI_LAYERS, PROTOCOLS } from '../src/data/protocols'
@@ -54,6 +55,15 @@ export function prerenderLessons(): Plugin {
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE}/${u}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n</urlset>\n`,
       )
       writeFileSync(join(outDir, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`)
+
+      // Offline: the service worker precaches every build file, lazy chunks included,
+      // and its cache name changes with each build so old files are dropped.
+      const assets = readdirSync(join(outDir, 'assets')).map((f) => `/assets/${f}`)
+      const version = createHash('sha256').update(assets.join()).digest('hex').slice(0, 10)
+      const sw = readFileSync(join(outDir, 'sw.js'), 'utf8')
+        .replace("const CACHE = 'protocolos-v1'", `const CACHE = 'protocolos-${version}'`)
+        .replace(/const SHELL = \[([^\]]*)\]/, (_, list) => `const SHELL = [${list}, ${assets.map((a) => `'${a}'`).join(', ')}]`)
+      writeFileSync(join(outDir, 'sw.js'), sw)
     },
   }
 }

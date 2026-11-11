@@ -89,6 +89,7 @@ test.describe('F08 accesibilidad', () => {
     await stepBtn(page).click()
     expect(await axe(page), 'pantalla principal').toEqual([])
     await page.getByRole('tab', { name: 'Inspector' }).click()
+    await expect(page.getByText(/^Encapsulación:/)).toBeVisible() // the inspector loads on demand
     expect(await axe(page), 'inspector').toEqual([])
     await page.getByRole('tab', { name: 'Quiz' }).click()
     expect(await axe(page), 'quiz').toEqual([])
@@ -96,8 +97,15 @@ test.describe('F08 accesibilidad', () => {
     expect(await axe(page), 'lista de protocolos').toEqual([])
   })
 
-  test('F08-E1 saltar al contenido es lo primero', async ({ page }) => {
+  test('F08-E1 saltar al contenido es lo primero', async ({ page, browserName }) => {
     await fresh(page)
+    if (browserName === 'webkit') {
+      // Safari only tabs to links with Option+Tab (or "Press Tab to highlight each item"), which the
+      // test browser can't press; check instead that the link is the first focusable element.
+      const first = await page.evaluate(() => document.querySelector<HTMLElement>('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')?.textContent)
+      expect(first).toBe('Saltar al contenido')
+      return
+    }
     await page.keyboard.press('Tab')
     await expect(page.getByRole('link', { name: 'Saltar al contenido' })).toBeFocused()
   })

@@ -2,7 +2,6 @@ import { Binary, ChevronLeft, Download, Pause, Play, RotateCcw, StepForward } fr
 import { useT } from '../i18n'
 import { memo, useEffect, useRef, type Ref } from 'react'
 import { KIND_META, kindColor, addrOf, type Packet, type Protocol } from '../data/protocols'
-import { downloadPcapng } from '../lib/pcap'
 import { Button } from './ui/Button'
 
 interface Props {
@@ -112,7 +111,7 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
             <Button size="icon" variant="ghost" label={t('Reiniciar')} shortcut="R" onClick={onReset} disabled={step < 0}>
               <RotateCcw aria-hidden className="size-4" />
             </Button>
-            <Button size="icon" variant="ghost" label={t('Descargar la captura (.pcapng, se abre en Wireshark)')} onClick={() => downloadPcapng(protocol)}>
+            <Button size="icon" variant="ghost" label={t('Descargar la captura (.pcapng, se abre en Wireshark)')} onClick={() => import('../lib/pcap').then((m) => m.downloadPcapng(protocol))}>
               <Download aria-hidden className="size-4" />
             </Button>
           </div>

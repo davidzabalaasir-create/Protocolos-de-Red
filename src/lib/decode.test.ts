@@ -102,7 +102,8 @@ describe('captura pcapng', () => {
 
 describe('traducción al inglés', () => {
   it.each(PROTOCOLS.map((p) => [p.id, p] as const))('%s está completa y alineada', async (_, p) => {
-    const { LESSONS_EN } = await import('../i18n')
+    const { LESSONS_EN, loadEnglish } = await import('../i18n')
+    await loadEnglish()
     const en = LESSONS_EN[p.id]
     expect(en, 'falta la lección en inglés').toBeDefined()
     expect(en.notes.length, 'notas').toBe(p.packets.length)

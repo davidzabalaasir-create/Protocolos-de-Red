@@ -1,6 +1,6 @@
 # Protocolos de Red
 
-Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de **62 protocolos** paso a paso, en un diagrama de red, un diagrama de secuencia y una tabla tipo Wireshark, con **cada paquete decodificado byte a byte**.
+Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de **66 lecciones** (62 protocolos y 4 escenarios de fallo) paso a paso, en un diagrama de red, un diagrama de secuencia y una tabla tipo Wireshark, con **cada paquete decodificado byte a byte**.
 
 **🌐 En vivo: https://protocolos-de-red-eight.vercel.app**
 
@@ -27,13 +27,19 @@ Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de *
   - *Resumen*: descripción, capa, puerto, transporte y RFC.
   - *Inspector*: cada paquete construido byte a byte (Ethernet, 802.11, 802.1Q, IPv4 con fragmentación, IPv6/ICMPv6, TCP/UDP/ICMP/ARP y la carga de cada protocolo: DNS, DHCP, STUN, RTP, SMB2, Modbus, MQTT, SNMP, LDAP, RADIUS, IKEv2, ESP, OSPF, IGMP, PPPoE, EAPOL, STP…), con longitudes y checksums IPv4/IPv6/TCP/UDP/ICMP/IGMP calculados de verdad. Al pasar por un campo se resaltan sus bytes en el volcado hexadecimal.
   - *Quiz*: preguntas con explicación para cada protocolo.
-- **Progreso guardado**: una lección cuenta como completada al verla entera y acertar su quiz; el panel de protocolos muestra el avance (n/62).
+- **Progreso guardado**: una lección cuenta como completada al verla entera y acertar su quiz; el panel de protocolos muestra el avance (n/66).
 - **Flujo de paquetes**: reproducir/pausa, paso a paso, retroceder, reiniciar, velocidad 0.5×–2×, barra de progreso, botón para inspeccionar cada paquete y atajos (`Espacio`, `←`/`→`, `R`).
 - **Descarga en `.pcapng`**: cada lección se descarga como captura real que se abre en Wireshark (Ethernet, 802.11 y Bluetooth LE).
 - **Recorrido guiado** de 15 lecciones, de Ethernet a HTTP/3.
-- **Español e inglés**: botón ES/EN en la cabecera; se recuerda entre visitas y se elige solo según el idioma del navegador.
+- **Qué pasa si falla**: pérdida de un segmento TCP y retransmisión, dominio inexistente (NXDOMAIN), certificado TLS caducado y DHCP sin direcciones libres.
+- **Comparar** dos protocolos lado a lado (secuencia, paquetes, tiempo, bytes, cifrado).
+- **Modo examen**: 10 preguntas al azar de las lecciones vistas, nota final e impresión como certificado.
+- **Incrustar** cualquier lección en otra web con un `<iframe>` (`/dns/?embed=1`).
+- **Español e inglés**: botón ES/EN en la cabecera; se recuerda entre visitas y se elige solo según el idioma del navegador. El inspector de paquetes también está traducido entero.
+- **Funciona sin conexión**: tras la primera visita, un service worker guarda la web y todas las lecciones.
+- **Carga ligera**: el inspector, el decodificador, la descarga `.pcapng`, la comparación, el examen y el texto en inglés se descargan solo cuando se usan (~141 KB comprimidos en la primera carga, antes 197 KB).
 - **Instalable** como app en el móvil, con imagen para compartir en redes.
-- Enlaces directos por protocolo: `/#dns`, `/#tcp`, etc.
+- **Enlaces directos** por protocolo y paso: `/dns/`, `/tcp/#3`, `/#comparar=tcp,udp`, `/#examen`. Cada lección tiene su propia página pre-generada (título, descripción y contenido para buscadores) y hay `sitemap.xml`.
 
 ## Desarrollo
 
@@ -41,11 +47,13 @@ Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de *
 npm install
 npm run dev
 npm run build
-npm test      # 1045 pruebas: decodificación, checksums, rutas, pcapng y traducciones
-npm run e2e   # 68 casos de Playwright + axe en escritorio y móvil
+npm test      # 1112 pruebas: decodificación, checksums, rutas, pcapng y traducciones (también del inspector)
+npm run e2e   # Playwright + axe en Chrome, Android, Safari e iPhone (180 casos)
 ```
 
-Stack: Vite, React 19, TypeScript, Tailwind CSS v4 y Lucide React. Sin scripts de terceros ni analítica.
+GitHub Actions ejecuta todo en cada push, también en Firefox ([`.github/workflows/pruebas.yml`](.github/workflows/pruebas.yml)).
+
+Stack: Vite, React 19, TypeScript, Tailwind CSS v4 y Lucide React. Estadísticas de visitas con Vercel Web Analytics (sin cookies ni datos personales, solo en la web publicada); ningún otro script de terceros.
 
 ## Auditoría de accesibilidad (WCAG 2.1 AA)
 

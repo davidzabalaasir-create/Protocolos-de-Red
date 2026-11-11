@@ -10,5 +10,9 @@ export default defineConfig({
   projects: [
     { name: 'escritorio', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     { name: 'movil', use: { ...devices['Pixel 7'] } },
+    // Playwright's Firefox build doesn't start on this Windows PC (side-by-side error), so it runs in GitHub Actions.
+    ...(process.env.CI || process.env.FIREFOX ? [{ name: 'firefox', use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 900 } } }] : []),
+    { name: 'safari', use: { ...devices['Desktop Safari'], viewport: { width: 1440, height: 900 } } },
+    { name: 'iphone', use: { ...devices['iPhone 14'] } },
   ],
 })

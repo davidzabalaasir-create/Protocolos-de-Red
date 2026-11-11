@@ -6,13 +6,6 @@ import { SequenceDiagram } from './Stage'
 import { Button } from './ui/Button'
 
 /** Natural pairings for "compare with…" */
-const PAIRS: Record<string, string> = {
-  tcp: 'udp', udp: 'tcp', http: 'https', https: 'http', http2: 'http3', http3: 'http2', ipv4: 'ipv6', ipv6: 'ipv4',
-  imap: 'pop3', pop3: 'imap', ftp: 'tftp', tftp: 'ftp', ssh: 'telnet', telnet: 'ssh', rip: 'ospf', ospf: 'rip',
-  wifi: 'wpa3', wpa3: 'wifi', dns: 'doh', doh: 'dns', mqtt: 'coap', coap: 'mqtt', ipsec: 'wireguard', wireguard: 'ipsec',
-  proxy: 'reverse', reverse: 'proxy', smtp: 'imap', tls: 'https', mdns: 'dns', vrrp: 'ospf',
-}
-export const partnerOf = (id: string) => PAIRS[id] ?? (id === 'tcp' ? 'udp' : 'tcp')
 
 const bytes = (size: string) => {
   const m = size.match(/([\d.]+)\s*(KB|B)/)

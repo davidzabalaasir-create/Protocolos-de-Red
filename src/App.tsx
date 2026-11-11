@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { packetTiming } from './lib/timing'
 import { lessonUrl, parseUrl } from './lib/url'
 import { Header } from './components/Header'
@@ -8,9 +8,11 @@ import { SidePanel, type PanelTab } from './components/SidePanel'
 import { Stage } from './components/Stage'
 import { Toolbar } from './components/Toolbar'
 import { TourBar } from './components/TourBar'
-import { Compare, partnerOf } from './components/Compare'
-import { Exam } from './components/Exam'
-import { EmbedDialog } from './components/EmbedDialog'
+import { partnerOf } from './lib/pairs'
+
+const Compare = lazy(() => import('./components/Compare').then((m) => ({ default: m.Compare })))
+const Exam = lazy(() => import('./components/Exam').then((m) => ({ default: m.Exam })))
+const EmbedDialog = lazy(() => import('./components/EmbedDialog').then((m) => ({ default: m.EmbedDialog })))
 import { EmbedFrame } from './components/EmbedFrame'
 import { PROTOCOLS } from './data/protocols'
 import { displayName, localize, useLang, useT } from './i18n'
@@ -306,9 +308,11 @@ export default function App() {
         onLayer={setLayerFilter}
         onExam={openExam}
       />
-      {compare && <Compare pair={compare} onChange={setCompare} onClose={() => setCompare(null)} />}
-      {exam && <Exam progress={progress} onClose={() => setExam(false)} />}
-      {embedOpen && <EmbedDialog protocol={protocol} onClose={() => setEmbedOpen(false)} />}
+      <Suspense fallback={null}>
+        {compare && <Compare pair={compare} onChange={setCompare} onClose={() => setCompare(null)} />}
+        {exam && <Exam progress={progress} onClose={() => setExam(false)} />}
+        {embedOpen && <EmbedDialog protocol={protocol} onClose={() => setEmbedOpen(false)} />}
+      </Suspense>
     </div>
   )
 }

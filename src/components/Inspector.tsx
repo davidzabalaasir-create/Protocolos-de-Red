@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react'
-import { fieldText, useLang, useT } from '../i18n'
+import { useLang, useT } from '../i18n'
+import { fieldText } from '../i18n/fields-en'
 import { memo, useMemo, useState } from 'react'
 import type { Packet } from '../data/protocols'
 import { decodePacket, type Field } from '../lib/decode'

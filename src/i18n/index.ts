@@ -1,16 +1,14 @@
 import { useCallback, useSyncExternalStore } from 'react'
 import { NODES, type NodeId, type Packet, type Protocol } from '../data/protocols'
-import { LESSONS_EN_1 } from './en-lessons-1'
-import { LESSONS_EN_2 } from './en-lessons-2'
-import { LESSONS_EN_3 } from './en-lessons-3'
-import { LESSONS_EN_4 } from './en-lessons-4'
-import { LESSONS_EN_5 } from './en-lessons-5'
 import type { Lang, LessonText } from './types'
 import { UI_EN } from './ui-en'
 
 export type { Lang } from './types'
 
-export const LESSONS_EN: Record<string, LessonText> = { ...LESSONS_EN_1, ...LESSONS_EN_2, ...LESSONS_EN_3, ...LESSONS_EN_4, ...LESSONS_EN_5 }
+/** English lesson text, filled in on demand: Spanish-only visitors never download it. */
+export const LESSONS_EN: Record<string, LessonText> = {}
+let english: Promise<void> | null = null
+export const loadEnglish = () => (english ??= import('./en-lessons').then((m) => void Object.assign(LESSONS_EN, m.LESSONS_EN_ALL)))
 
 // ── language store (persisted, shared by every component) ─────────────────
 const KEY = 'protocolos:lang'
@@ -26,9 +24,12 @@ function initial(): Lang {
   }
 }
 
-let current: Lang = typeof window === 'undefined' ? 'es' : initial()
+let current: Lang = 'es'
+/** Language the visitor wants; the UI switches once its lesson text is loaded. */
+export const preferredLang = (): Lang => (typeof window === 'undefined' ? 'es' : initial())
 
-export function setLang(l: Lang) {
+export async function setLang(l: Lang) {
+  if (l === 'en') await loadEnglish()
   current = l
   try {
     localStorage.setItem(KEY, l)
@@ -236,77 +237,6 @@ export const displayName = (lang: Lang, p: { id: string; name: string }) => (lan
 
 export const fullName = (lang: Lang, p: Protocol) => (lang === 'en' ? (LESSONS_EN[p.id]?.full ?? p.full) : p.full)
 
-// ── inspector: common header fields (rarer protocol-specific fields stay in Spanish) ──
-const FIELD_EN: Record<string, string> = {
-  'MAC destino': 'Destination MAC',
-  'MAC origen': 'Source MAC',
-  'Versión / IHL': 'Version / IHL',
-  'Longitud total': 'Total length',
-  Identificación: 'Identification',
-  'Flags / fragmento': 'Flags / fragment',
-  Protocolo: 'Protocol',
-  'IP origen': 'Source IP',
-  'IP destino': 'Destination IP',
-  'Puerto origen': 'Source port',
-  'Puerto destino': 'Destination port',
-  'Número de secuencia': 'Sequence number',
-  'Número de ACK': 'Acknowledgment number',
-  'Longitud de cabecera': 'Header length',
-  Ventana: 'Window',
-  'Puntero urgente': 'Urgent pointer',
-  Longitud: 'Length',
-  Tipo: 'Type',
-  Código: 'Code',
-  Identificador: 'Identifier',
-  Secuencia: 'Sequence',
-  Datos: 'Data',
-  Texto: 'Text',
-  Mensaje: 'Message',
-  'Versión / clase / flujo': 'Version / class / flow',
-  'Longitud de carga': 'Payload length',
-  'Siguiente cabecera': 'Next header',
-  'Límite de saltos': 'Hop limit',
-  'Sin usar': 'Unused',
-  'Cabecera IP original': 'Original IP header',
-  '8 bytes de la sonda': 'First 8 bytes of the probe',
-  'Etiqueta 802.1Q': '802.1Q tag',
-  'Datos de impresión': 'Print data',
-  'Datos UDP': 'UDP data',
-  'Fragmento IPv4': 'IPv4 fragment',
-  'Datos (continuación)': 'Data (continued)',
-  'DF (no fragmentar)': "DF (don't fragment)",
-  '1 (solo el enlace local)': '1 (local link only)',
-  '56 bytes de relleno': '56 bytes of padding',
-  'Echo Request (8)': 'Echo Request (8)',
-  'Time Exceeded (11)': 'Time Exceeded (11)',
-  'TTL agotado en tránsito (0)': 'TTL expired in transit (0)',
-  'puerto inalcanzable (3)': 'port unreachable (3)',
-}
-
-const FIELD_PHRASES: [string, string][] = [
-  ['(difusión)', '(broadcast)'],
-  ['(relativo)', '(relative)'],
-  ['(multicast IPv6)', '(IPv6 multicast)'],
-  [' bytes de la aplicación', ' bytes of application data'],
-  ['(sonda de traceroute)', '(traceroute probe)'],
-  ['(calculado sobre el datagrama completo)', '(computed over the whole datagram)'],
-  ['MF (más fragmentos)', 'MF (more fragments)'],
-  ['último fragmento', 'last fragment'],
-  ['desplazamiento', 'offset'],
-]
-
-/** Best-effort English for decoder field names and values. */
-export function fieldText(lang: Lang, s: string) {
-  if (lang !== 'en') return s
-  if (FIELD_EN[s]) return FIELD_EN[s]
-  let out = s
-  for (const [a, b] of FIELD_PHRASES) out = out.replaceAll(a, b)
-  for (const [id, en] of Object.entries(NODE_EN)) {
-    const es = NODE_ES[id as NodeId]
-    if (es) out = out.replaceAll(`(${es})`, `(${en})`)
-  }
-  return out
-}
 
 // Spanish node labels, for swapping "(Router)"-style suffixes in decoded values
-const NODE_ES: Partial<Record<NodeId, string>> = Object.fromEntries(Object.values(NODES).map((n) => [n.id, n.label]))
+export const NODE_ES: Partial<Record<NodeId, string>> = Object.fromEntries(Object.values(NODES).map((n) => [n.id, n.label]))
