@@ -69,7 +69,27 @@ export function prerenderLessons(): Plugin {
 </main>`,
       )
 
-      const urls = ['', 'subneteo/', ...PROTOCOLS.map((p) => `${p.id}/`)]
+      // privacy notice: plain static page, the app doesn't mount there (see main.tsx)
+      writePage(
+        'privacidad',
+        `${SITE}/privacidad/`,
+        'Privacidad · Protocolos de Red',
+        'Qué datos guarda Protocolos de Red: progreso en tu navegador, cuenta opcional con Clerk y estadísticas de visitas sin cookies.',
+        `<main style="max-width:44rem;margin:0 auto;padding:2rem 1rem;line-height:1.6">
+<p><a href="/">← Protocolos de Red</a></p>
+<h1>Privacidad</h1>
+<h2>Sin cuenta</h2>
+<p>Tu progreso (lecciones vistas y notas del quiz), el idioma y el tema se guardan solo en tu navegador (localStorage). No salen de tu dispositivo y puedes borrarlos borrando los datos del sitio.</p>
+<h2>Con cuenta (opcional)</h2>
+<p>Si inicias sesión, el servicio <a href="https://clerk.com/legal/privacy" rel="noopener">Clerk</a> guarda tu email (y tu nombre y foto si entras con Google o GitHub) y una copia de tu progreso para sincronizarlo entre dispositivos. No se usa para nada más ni se comparte con terceros. Puedes eliminar la cuenta y todos sus datos desde el menú de tu avatar → <em>Gestionar cuenta</em> → <em>Eliminar cuenta</em>.</p>
+<h2>Estadísticas</h2>
+<p>Contamos visitas con Vercel Web Analytics, que no usa cookies ni guarda datos personales.</p>
+<h2>Contacto</h2>
+<p>Responsable: David, <a href="https://github.com/davidzabalaasir-create" rel="noopener">github.com/davidzabalaasir-create</a>.</p>
+</main>`,
+      )
+
+      const urls = ['', 'subneteo/', 'privacidad/', ...PROTOCOLS.map((p) => `${p.id}/`)]
       writeFileSync(
         join(outDir, 'sitemap.xml'),
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE}/${u}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n</urlset>\n`,
@@ -78,7 +98,10 @@ export function prerenderLessons(): Plugin {
 
       // Offline: the service worker precaches every build file, lazy chunks included,
       // and its cache name changes with each build so old files are dropped.
-      const assets = readdirSync(join(outDir, 'assets')).map((f) => `/assets/${f}`)
+      // (the account chunk is left out: signing in needs the network anyway)
+      const assets = readdirSync(join(outDir, 'assets'))
+        .filter((f) => !f.startsWith('Account-'))
+        .map((f) => `/assets/${f}`)
       const version = createHash('sha256').update(assets.join()).digest('hex').slice(0, 10)
       const sw = readFileSync(join(outDir, 'sw.js'), 'utf8')
         .replace("const CACHE = 'protocolos-v1'", `const CACHE = 'protocolos-${version}'`)

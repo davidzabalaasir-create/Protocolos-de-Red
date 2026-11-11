@@ -197,6 +197,12 @@ export const UI_EN: Record<string, string> = {
   // app
   'Saltar al contenido': 'Skip to content',
   'Inspirado en Protocol Explorer · Hecho con React y Tailwind CSS': 'Inspired by Protocol Explorer · Built with React and Tailwind CSS',
+  // account
+  'Iniciar sesión': 'Sign in',
+  'Guardando…': 'Saving…',
+  'Sin conexión: se guardará luego': 'Offline: will save later',
+  'Progreso guardado': 'Progress saved',
+  Privacidad: 'Privacy',
   // subnetting
   Subneteo: 'Subnetting',
   'Calculadora de subredes': 'Subnet calculator',

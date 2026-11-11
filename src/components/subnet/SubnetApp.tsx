@@ -44,7 +44,10 @@ export default function SubnetApp() {
         <a href="https://github.com/davidzabalaasir-create" target="_blank" rel="noopener noreferrer" className="font-bold text-fg underline">
           David
         </a>{' '}
-        · {t('Inspirado en Protocol Explorer · Hecho con React y Tailwind CSS')}
+        · {t('Inspirado en Protocol Explorer · Hecho con React y Tailwind CSS')} ·{' '}
+        <a href="/privacidad/" className="underline">
+          {t('Privacidad')}
+        </a>
       </footer>
       <ProtocolDrawer
         open={drawer}

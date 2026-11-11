@@ -297,7 +297,7 @@ export default function App() {
       </div>
 
       <footer className="border-t border-line px-4 py-4 text-center text-xs text-muted">
-        {t('Diseñado por')}{' '}<a href="https://github.com/davidzabalaasir-create" target="_blank" rel="noopener noreferrer" className="font-bold text-fg underline">David</a> · {t('Inspirado en Protocol Explorer · Hecho con React y Tailwind CSS')}
+        {t('Diseñado por')}{' '}<a href="https://github.com/davidzabalaasir-create" target="_blank" rel="noopener noreferrer" className="font-bold text-fg underline">David</a> · {t('Inspirado en Protocol Explorer · Hecho con React y Tailwind CSS')} · <a href="/privacidad/" className="underline">{t('Privacidad')}</a>
       </footer>
 
       <ProtocolDrawer

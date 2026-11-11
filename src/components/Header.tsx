@@ -59,6 +59,8 @@ export const Header = memo(function Header({ theme, onTheme, onOpenMenu }: Props
           </a>
         </div>
 
+        <div id="account-slot" className="contents" />
+
         <div role="group" aria-label={t('Idioma')} className="flex gap-0.5 rounded-lg border border-line-strong bg-panel p-1 shadow-sm">
           {(['es', 'en'] as const).map((l) => (
             <Button key={l} variant="ghost" size="iconSm" lang={l} aria-pressed={lang === l} label={l === 'es' ? 'Español' : 'English'} onClick={() => setLang(l)}>

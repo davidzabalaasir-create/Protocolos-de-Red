@@ -85,6 +85,7 @@ test.describe('F07 descargar la captura', () => {
 
 test.describe('F08 accesibilidad', () => {
   test('F08-H1 axe en las pantallas principales', async ({ page }) => {
+    test.slow() // four full axe scans: past 30 s when many browsers run in parallel
     await fresh(page)
     await stepBtn(page).click()
     expect(await axe(page), 'pantalla principal').toEqual([])

@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: true,
+  // 8+ WebKit browsers at once overload this PC and make tests time out; CI keeps the default
+  workers: process.env.CI ? undefined : 4,
   retries: process.env.CI ? 1 : 0, // a headless browser crash in CI shouldn't fail the run
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'e2e-report' }]],
   use: { baseURL: 'http://localhost:5199', locale: 'es-ES', trace: 'retain-on-failure', screenshot: 'only-on-failure' },
