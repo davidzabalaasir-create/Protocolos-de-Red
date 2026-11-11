@@ -288,13 +288,23 @@ function NetworkDiagram({ protocol, packet, step, speed, summary }: { protocol: 
     const totalLen = lens.reduce((a, b) => a + b, 0) || 1
     const starts = lens.map((_, i) => lens.slice(0, i).reduce((a, b) => a + b, 0) / totalLen)
     const svg = g.ownerSVGElement
+    // looked up once per packet; lanes are only touched when the packet enters a new hop,
+    // not on every frame (that forced a style recalculation 60 times a second)
+    const segs = Array.from(svg?.querySelectorAll<SVGElement>('[data-seg]') ?? [])
+    let lit = -2
     let dimTimer = 0
+    const unlight = () => {
+      segs.forEach((el) => el.removeAttribute('data-lit'))
+      lit = -2
+    }
     const dimLater = () => {
-      dimTimer = window.setTimeout(() => svg?.querySelectorAll<SVGElement>('[data-seg]').forEach((el) => el.removeAttribute('data-lit')), 900)
+      dimTimer = window.setTimeout(unlight, 900)
     }
     const light = (t: number) => {
       const reached = starts.filter((s0) => t >= s0 - 0.001).length - 1
-      svg?.querySelectorAll<SVGElement>('[data-seg]').forEach((el) => {
+      if (reached === lit) return
+      lit = reached
+      segs.forEach((el) => {
         if (Number(el.dataset.seg) <= reached) el.setAttribute('data-lit', '')
         else el.removeAttribute('data-lit')
       })
@@ -335,7 +345,7 @@ function NetworkDiagram({ protocol, packet, step, speed, summary }: { protocol: 
     // waiting for the camera: the tag is not on the wire yet
     g.setAttribute('opacity', delay > 0 ? '0' : '1')
     place(0)
-    if (delay > 0) svg?.querySelectorAll<SVGElement>('[data-seg]').forEach((el) => el.removeAttribute('data-lit'))
+    if (delay > 0) unlight()
     raf = requestAnimationFrame(tick)
     fallback = window.setTimeout(() => {
       cancelAnimationFrame(raf)

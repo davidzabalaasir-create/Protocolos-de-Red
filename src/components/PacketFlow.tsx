@@ -34,13 +34,29 @@ export const PacketFlow = memo(function PacketFlow({ protocol, step, playing, sp
   useEffect(() => {
     // keep the current row visible by scrolling the table only — never the page,
     // so the diagram stays on screen while the lesson plays
+    // Positions come from an IntersectionObserver, which reports them after the browser's own
+    // layout: reading offsetTop here forced a full-page layout on every step (the main stutter).
     const row = rowRef.current
     const box = scrollRef.current
     if (!row || !box) return
-    const top = row.offsetTop - (box.querySelector('thead')?.offsetHeight ?? 0)
-    const bottom = row.offsetTop + row.offsetHeight + ((row.nextElementSibling as HTMLElement | null)?.offsetHeight ?? 0)
-    if (top < box.scrollTop) box.scrollTo({ top, behavior: 'smooth' })
-    else if (bottom > box.scrollTop + box.clientHeight) box.scrollTo({ top: bottom - box.clientHeight, behavior: 'smooth' })
+    const head = box.querySelector('thead')
+    const extra = row.nextElementSibling // the explanation row under the current packet
+    const io = new IntersectionObserver(
+      (entries) => {
+        io.disconnect()
+        const rect = (el: Element | null) => (el ? entries.find((e) => e.target === el)?.boundingClientRect : undefined)
+        const r = rect(row)
+        const root = entries[0]?.rootBounds
+        if (!r || !root) return
+        const headH = rect(head)?.height ?? 0
+        const bottom = rect(extra)?.bottom ?? r.bottom
+        if (r.top < root.top + headH) box.scrollBy({ top: r.top - root.top - headH, behavior: 'smooth' })
+        else if (bottom > root.bottom) box.scrollBy({ top: bottom - root.bottom, behavior: 'smooth' })
+      },
+      { root: box },
+    )
+    for (const el of [row, extra, head]) if (el) io.observe(el)
+    return () => io.disconnect()
   }, [step])
 
   // Space: play/pause · ←/→: previous/next · R: restart

@@ -3,8 +3,8 @@ import { lazy, Suspense } from 'react'
 import { useT } from '../i18n'
 import type { Protocol } from '../data/protocols'
 import { Overview } from './Overview'
-import { Quiz } from './Quiz'
 
+const Quiz = lazy(() => import('./Quiz').then((m) => ({ default: m.Quiz })))
 const Inspector = lazy(() => import('./Inspector').then((m) => ({ default: m.Inspector })))
 
 export type PanelTab = 'overview' | 'inspector' | 'quiz'
@@ -68,7 +68,11 @@ export function SidePanel({ protocol, step, tab, onTab, done, bestScore, onScore
             <Inspector packet={step >= 0 ? protocol.packets[step] : null} index={step} />
           </Suspense>
         )}
-        {tab === 'quiz' && <Quiz key={protocol.id} protocolId={protocol.id} best={bestScore} onScore={onScore} />}
+        {tab === 'quiz' && (
+          <Suspense fallback={<p className="p-4 text-sm text-muted">{t('Cargando…')}</p>}>
+            <Quiz key={protocol.id} protocolId={protocol.id} best={bestScore} onScore={onScore} />
+          </Suspense>
+        )}
       </div>
     </aside>
   )

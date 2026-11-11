@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react'
 import { displayName, fullName, useLang, useT } from '../i18n'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
   onLayer: (layer: number) => void
 }
 
-export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
+export const Toolbar = memo(function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
   const t = useT()
   const lang = useLang()
   const [query, setQuery] = useState('')
@@ -98,10 +98,10 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
                 aria-selected={i === active}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => choose(p.id)}
-                className="flex min-h-11 cursor-pointer items-center gap-3 px-3 text-sm aria-selected:bg-accent aria-selected:text-accent-fg"
+                className="group flex min-h-11 cursor-pointer items-center gap-3 px-3 text-sm aria-selected:bg-accent aria-selected:text-accent-fg"
               >
                 <strong>{displayName(lang, p)}</strong>
-                <span className="truncate opacity-80">{fullName(lang, p)}</span>
+                <span className="truncate text-muted group-aria-selected:text-accent-fg">{fullName(lang, p)}</span>
               </li>
             ))}
           </ul>
@@ -130,4 +130,4 @@ export function Toolbar({ currentLayer, onSelect, onLayer }: Props) {
       </fieldset>
     </div>
   )
-}
+})

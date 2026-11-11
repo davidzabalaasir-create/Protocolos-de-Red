@@ -1,5 +1,5 @@
 import { PanelLeftClose, X } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import { useT } from '../i18n'
 import type { Progress } from '../lib/progress'
 import { ListProgress, ProtocolList } from './ProtocolList'
@@ -17,7 +17,7 @@ interface Props {
 }
 
 /** Protocol list as a modal panel (narrow screens). Native <dialog> gives focus trapping and Escape. */
-export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSelect, onLayer, onExam }: Props) {
+export const ProtocolDrawer = memo(function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSelect, onLayer, onExam }: Props) {
   const t = useT()
   const ref = useRef<HTMLDialogElement>(null)
 
@@ -50,10 +50,10 @@ export function ProtocolDrawer({ open, layer, currentId, progress, onClose, onSe
       <ProtocolList layer={layer} currentId={currentId} progress={progress} onSelect={onSelect} onLayer={onLayer} onExam={onExam} />
     </dialog>
   )
-}
+})
 
 /** Protocol list as a fixed, collapsible sidebar (wide screens). */
-export function ProtocolSidebar({ layer, currentId, progress, onSelect, onLayer, onHide, onExam }: Omit<Props, 'open' | 'onClose'> & { onHide: () => void }) {
+export const ProtocolSidebar = memo(function ProtocolSidebar({ layer, currentId, progress, onSelect, onLayer, onHide, onExam }: Omit<Props, 'open' | 'onClose'> & { onHide: () => void }) {
   const t = useT()
   return (
     <aside
@@ -76,4 +76,4 @@ export function ProtocolSidebar({ layer, currentId, progress, onSelect, onLayer,
       </div>
     </aside>
   )
-}
+})

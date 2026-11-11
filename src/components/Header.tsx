@@ -1,4 +1,5 @@
 import { Boxes, Menu, Moon, Network, Sun } from 'lucide-react'
+import { memo } from 'react'
 import { setLang, useLang, useT } from '../i18n'
 import { Button } from './ui/Button'
 
@@ -8,7 +9,7 @@ interface Props {
   onOpenMenu: () => void
 }
 
-export function Header({ theme, onTheme, onOpenMenu }: Props) {
+export const Header = memo(function Header({ theme, onTheme, onOpenMenu }: Props) {
   const t = useT()
   const lang = useLang()
   return (
@@ -77,4 +78,4 @@ export function Header({ theme, onTheme, onOpenMenu }: Props) {
       </div>
     </header>
   )
-}
+})
