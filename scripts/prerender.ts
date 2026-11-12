@@ -69,13 +69,20 @@ export function prerenderLessons(): Plugin {
 </main>`,
       )
 
-      // /subneteo/ downloads its own code in parallel with the main bundle (no wait, no blank page)
-      const subnetChunk = readdirSync(join(outDir, 'assets')).find((f) => f.startsWith('SubnetApp-') && f.endsWith('.js'))
-      if (subnetChunk) {
-        const file = join(outDir, 'subneteo', 'index.html')
-        writeFileSync(file, readFileSync(file, 'utf8').replace('</head>', `  <link rel="modulepreload" crossorigin href="/assets/${subnetChunk}">
-  </head>`))
-      }
+
+      writePage(
+        'referencia',
+        `${SITE}/referencia/`,
+        'Chuleta CCNA y flashcards con repaso espaciado · Protocolos de Red',
+        'Puertos conocidos, distancias administrativas, rangos IPv4 e IPv6, cabeceras, EtherTypes, temporizadores, multicast, tipos ICMP, máscaras, modelo OSI y Wi-Fi, con flashcards para memorizarlos.',
+        `<main>
+<h1>Referencia: la chuleta del CCNA</h1>
+<p>Las tablas que hay que saberse de memoria: puertos conocidos, distancias administrativas, rangos IPv4 especiales, direcciones IPv6, cabeceras y tamaños, EtherTypes y números de protocolo, temporizadores por defecto, direcciones multicast, tipos ICMP, máscaras y hosts, el modelo OSI y los estándares Wi-Fi.</p>
+<h2>Flashcards con repaso espaciado</h2>
+<p>Cada tabla genera tarjetas de memoria. Si aciertas, la tarjeta tarda más en volver (1, 3, 7, 15 y 30 días); si fallas, vuelve a empezar.</p>
+<p>Parte de <a href="/">Protocolos de Red</a>.</p>
+</main>`,
+      )
 
       // privacy notice: plain static page, the app doesn't mount there (see main.tsx)
       writePage(
@@ -97,11 +104,24 @@ export function prerenderLessons(): Plugin {
 </main>`,
       )
 
-      const urls = ['', 'subneteo/', 'privacidad/', ...PROTOCOLS.map((p) => `${p.id}/`)]
+      const urls = ['', 'subneteo/', 'referencia/', 'privacidad/', ...PROTOCOLS.map((p) => `${p.id}/`)]
       writeFileSync(
         join(outDir, 'sitemap.xml'),
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE}/${u}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n</urlset>\n`,
       )
+      // each section page downloads its own code in parallel with the main bundle (no wait, no blank page)
+      for (const [dir, prefix] of [
+        ['subneteo', 'SubnetApp-'],
+        ['referencia', 'RefApp-'],
+      ] as const) {
+        const chunk = readdirSync(join(outDir, 'assets')).find((f) => f.startsWith(prefix) && f.endsWith('.js'))
+        if (chunk) {
+          const file = join(outDir, dir, 'index.html')
+          writeFileSync(file, readFileSync(file, 'utf8').replace('</head>', `  <link rel="modulepreload" crossorigin href="/assets/${chunk}">
+  </head>`))
+        }
+      }
+
       writeFileSync(join(outDir, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`)
 
       // Offline: the service worker precaches every build file, lazy chunks included,

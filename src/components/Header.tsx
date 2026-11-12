@@ -1,7 +1,7 @@
-import { Boxes, Menu, Moon, Network, Sun } from 'lucide-react'
+import { BookMarked, Boxes, Menu, Moon, Network, Sun } from 'lucide-react'
 import { memo } from 'react'
 import { setLang, useLang, useT } from '../i18n'
-import { appLinkClick, prefetchSubnet } from '../lib/nav'
+import { appLinkClick, prefetchSection } from '../lib/nav'
 import { Button } from './ui/Button'
 
 interface Props {
@@ -37,13 +37,25 @@ export const Header = memo(function Header({ theme, onTheme, onOpenMenu }: Props
       <a
         href="/subneteo/"
         onClick={appLinkClick}
-        onPointerEnter={prefetchSubnet}
-        onFocus={prefetchSubnet}
+        onPointerEnter={prefetchSection('subneteo')}
+        onFocus={prefetchSection('subneteo')}
         aria-current={typeof location !== 'undefined' && location.pathname.startsWith('/subneteo') ? 'page' : undefined}
         className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-line-strong bg-panel px-3 text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2 aria-[current]:border-accent aria-[current]:bg-accent aria-[current]:text-accent-fg"
       >
         <Network aria-hidden className="size-4" />
         {t('Subneteo')}
+      </a>
+
+      <a
+        href="/referencia/"
+        onClick={appLinkClick}
+        onPointerEnter={prefetchSection('referencia')}
+        onFocus={prefetchSection('referencia')}
+        aria-current={typeof location !== 'undefined' && location.pathname.startsWith('/referencia') ? 'page' : undefined}
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-line-strong bg-panel px-3 text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2 aria-[current]:border-accent aria-[current]:bg-accent aria-[current]:text-accent-fg"
+      >
+        <BookMarked aria-hidden className="size-4" />
+        {t('Referencia')}
       </a>
 
       <div className="ml-auto flex flex-wrap items-center justify-end gap-3">

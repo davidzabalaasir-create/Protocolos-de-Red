@@ -1,10 +1,10 @@
-import { CircleCheck, GraduationCap, Network, Route } from 'lucide-react'
+import { BookMarked, CircleCheck, GraduationCap, Network, Route } from 'lucide-react'
 import { memo } from 'react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
 import { QUIZ_COUNT } from '../data/quiz-count'
 import { TOUR } from '../data/tour'
 import { displayName, fullName, useLang, useT } from '../i18n'
-import { appLinkClick, prefetchSubnet } from '../lib/nav'
+import { appLinkClick, prefetchSection } from '../lib/nav'
 import { isDone, type Progress } from '../lib/progress'
 import { Button } from './ui/Button'
 
@@ -64,11 +64,20 @@ export const ProtocolList = memo(function ProtocolList({ layer, currentId, progr
         <a
           href="/subneteo/"
           onClick={appLinkClick}
-          onPointerEnter={prefetchSubnet}
+          onPointerEnter={prefetchSection('subneteo')}
           className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-panel px-4 text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2"
         >
           <Network aria-hidden className="size-4" />
           {t('Calculadora de subredes')}
+        </a>
+        <a
+          href="/referencia/"
+          onClick={appLinkClick}
+          onPointerEnter={prefetchSection('referencia')}
+          className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-panel px-4 text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2"
+        >
+          <BookMarked aria-hidden className="size-4" />
+          {t('Chuleta y flashcards')}
         </a>
       </div>
 

@@ -1,5 +1,8 @@
 /** Spanish UI string → English. Keys are the exact Spanish text used in components. */
+import { UI_EN_REF } from './ui-en-ref'
+
 export const UI_EN: Record<string, string> = {
+  ...UI_EN_REF,
   'Cargando…': 'Loading…',
   // header
   'Abrir lista de protocolos': 'Open protocol list',
