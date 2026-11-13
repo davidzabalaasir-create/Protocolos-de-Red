@@ -270,4 +270,24 @@ export const QUIZ: Record<string, Question[]> = {
     { q: '¿Cómo descubre el móvil una pulsera BLE?', options: ['Escuchando sus anuncios (ADV_IND)', 'Por DNS', 'Con un cable'], answer: 0, why: 'Los dispositivos se anuncian en los canales de publicidad.' },
     { q: '¿Qué protocolo se usa para leer datos como el pulso?', options: ['ATT/GATT', 'SMTP', 'BGP'], answer: 0, why: 'Los datos son atributos GATT leídos o notificados mediante ATT.' },
   ],
+  hsrp: [
+    { q: '¿Qué pasa si el router activo de HSRP deja de enviar hellos?', options: ['Los equipos cambian su puerta de enlace por DHCP', 'El standby espera el hold (10 s) y se vuelve activo con la misma IP y MAC virtuales', 'La red se queda sin salida hasta que lo reparen'], answer: 1, why: 'La gracia de HSRP: la IP y la MAC virtuales no cambian, así que los equipos no notan nada.' },
+    { q: '¿En qué se diferencia HSRP de VRRP?', options: ['HSRP es propietario de Cisco; VRRP es el estándar abierto', 'HSRP usa multicast y VRRP no', 'VRRP necesita DHCP'], answer: 0, why: 'Hacen lo mismo; HSRP es de Cisco (UDP 1985, 224.0.0.2) y VRRP es el estándar (protocolo IP 112, 224.0.0.18).' },
+  ],
+  etherchannel: [
+    { q: '¿Por qué STP no bloquea los cables de un EtherChannel?', options: ['Porque STP está desactivado en esos puertos', 'Porque los ve como un único enlace lógico', 'Porque LACP tiene más prioridad que STP'], answer: 1, why: 'El grupo entero es un solo puerto lógico (Port-channel): no hay bucle que bloquear.' },
+    { q: '¿Cómo se reparte el tráfico entre los enlaces del grupo?', options: ['Cada trama va alternando de cable (round-robin)', 'Un hash de las direcciones elige un enlace fijo por conversación', 'El enlace más rápido se lleva todo'], answer: 1, why: 'El hash por MAC/IP mantiene cada conversación en el mismo cable y evita tramas desordenadas.' },
+  ],
+  intervlan: [
+    { q: 'En router-on-a-stick, ¿qué necesita cada subinterfaz?', options: ['encapsulation dot1Q con su VLAN y una IP de esa red', 'Un cable físico por VLAN', 'La misma IP en todas las VLANs'], answer: 0, why: 'Cada subinterfaz (G0/0.10, G0/0.20) lleva su encapsulation dot1Q y hace de puerta de enlace de su VLAN.' },
+    { q: 'Al enrutar entre VLANs, ¿qué cambia en el paquete?', options: ['Las IP de origen y destino', 'La etiqueta VLAN y las MAC; las IP no', 'Solo el TTL'], answer: 1, why: 'El router reescribe la trama (MACs y etiqueta) y descuenta el TTL, pero las IP viajan intactas.' },
+  ],
+  portsec: [
+    { q: 'Con port security en modo shutdown, ¿qué pasa ante una MAC no autorizada?', options: ['Se descarta solo esa trama', 'El puerto entero pasa a err-disabled', 'El switch borra su tabla MAC'], answer: 1, why: 'shutdown (el modo por defecto) apaga el puerto: queda en err-disabled hasta rearmarlo.' },
+    { q: '¿Qué hace la opción sticky?', options: ['Fija el puerto a una VLAN', 'Aprende la MAC conectada y la guarda en la configuración', 'Bloquea el puerto al apagar el equipo'], answer: 1, why: 'sticky convierte la primera MAC aprendida en parte de la running-config (guárdala con copy run start).' },
+  ],
+  acl: [
+    { q: '¿Qué ocurre con un paquete que no encaja en ninguna regla de la ACL?', options: ['Se permite', 'Se descarta por el deny implícito del final', 'Se reenvía al administrador'], answer: 1, why: 'Toda ACL termina en un deny any implícito: lo que no esté permitido explícitamente, se descarta.' },
+    { q: '¿Qué comprueba una ACL estándar (1–99)?', options: ['Solo la IP de origen', 'IPs, protocolo y puertos', 'La MAC de origen'], answer: 0, why: 'Las estándar solo miran la IP de origen; por eso se colocan cerca del destino. Las extendidas (100–199) miran mucho más.' },
+  ],
 }

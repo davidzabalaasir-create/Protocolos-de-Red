@@ -3,6 +3,7 @@ import { MORE_PROTOCOLS } from './more'
 import { MORE_PROTOCOLS_2 } from './more2'
 import { MORE_PROTOCOLS_3 } from './more3'
 import { FAILURE_PROTOCOLS } from './failures'
+import { CCNA_PROTOCOLS } from './ccna'
 
 export type NodeId =
   | 'client'
@@ -176,6 +177,8 @@ export interface Packet {
   display?: string
   /** IPv4 TTL override (traceroute probes) */
   ttl?: number
+  /** 802.1Q tag on this frame (inter-VLAN trunk legs) */
+  vlan?: number
 }
 
 export interface Protocol {
@@ -584,7 +587,7 @@ const BASE_PROTOCOLS: Protocol[] = [
   },
 ]
 
-export const PROTOCOLS: Protocol[] = [...BASE_PROTOCOLS, ...MORE_PROTOCOLS, ...MORE_PROTOCOLS_2, ...MORE_PROTOCOLS_3, ...FAILURE_PROTOCOLS]
+export const PROTOCOLS: Protocol[] = [...BASE_PROTOCOLS, ...MORE_PROTOCOLS, ...MORE_PROTOCOLS_2, ...MORE_PROTOCOLS_3, ...CCNA_PROTOCOLS, ...FAILURE_PROTOCOLS]
 
 const routeCache = new Map<string, NodeId[]>()
 

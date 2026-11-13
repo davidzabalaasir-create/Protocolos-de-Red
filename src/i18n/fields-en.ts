@@ -5,6 +5,16 @@ import { NODE_EN, NODE_ES, type Lang } from './index'
 import type { NodeId } from '../data/protocols'
 
 const FIELDS_EN: Record<string, string> = {
+  // CCNA lessons: HSRP, LACP, ICMP administratively prohibited
+  'Versión / opcode': 'Version / opcode',
+  Autenticación: 'Authentication',
+  'texto «cisco»': 'plain text "cisco"',
+  'Subtipo / versión': 'Subtype / version',
+  'aún desconocido (ceros)': 'not known yet (zeros)',
+  'retardo máximo 0': 'maximum delay 0',
+  'comunicación prohibida administrativamente (13)': 'communication administratively prohibited (13)',
+  'Inicio del TCP original': 'Start of the original TCP',
+  'TCP 51023 → 23 (el SYN descartado)': 'TCP 51023 → 23 (the dropped SYN)',
   // ── layers and field names ──
   'AD: fabricante': 'AD: manufacturer data',
   'AD: nombre completo': 'AD: complete name',
@@ -407,6 +417,8 @@ const FIELDS_EN: Record<string, string> = {
 
 /** Phrases inside values that are built from parameters (lengths, MACs, flags…). */
 const FIELD_PHRASES_EN: [RegExp, string][] = [
+  [/^sistema (\S+) · clave (\d+) · puerto (\S+)( · sincronizado)?$/, 'system $1 · key $2 · port $3$4'],
+  [/ · sincronizado$/, ' · in sync'],
   [/^longitud (\d+), tipo (\d+)/, 'length $1, type $2'],
   [/^id (\d+), seq (\d+), (\d+) bytes de datos$/, 'id $1, seq $2, $3 bytes of data'],
   [/^bytes (\S+) del datagrama$/, 'bytes $1 of the datagram'],

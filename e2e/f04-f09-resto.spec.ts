@@ -138,7 +138,7 @@ test.describe('F10 lista lateral fija', () => {
 })
 
 test.describe('F11 protocolos nuevos', () => {
-  for (const id of ['mdns', 'ssdp', 'lldp', 'vrrp', 'rip', 'gre', 'syslog', 'wol']) {
+  for (const id of ['mdns', 'ssdp', 'lldp', 'vrrp', 'rip', 'gre', 'syslog', 'wol', 'hsrp', 'etherchannel', 'intervlan', 'portsec', 'acl']) {
     test(`F11-H ${id} se reproduce hasta el final`, async ({ page }) => {
       await fresh(page, id)
       await page.getByRole('radio', { name: '2×' }).click()

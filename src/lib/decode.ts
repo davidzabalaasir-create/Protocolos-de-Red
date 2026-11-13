@@ -185,6 +185,8 @@ const TRANSPORT: Record<string, Transport> = {
   Syslog: { kind: 'udp', port: 514, clientPort: 50514 },
   'Wake-on-LAN': { kind: 'udp', port: 9, clientPort: 50009 },
   CoAP: { kind: 'udp', port: 5683, clientPort: 50683 },
+  HSRP: { kind: 'udp', port: 1985, clientPort: 1985 },
+  LACP: { kind: 'l2' },
 }
 
 /** Which end of a conversation is the "server" side (gets the well-known port). */
@@ -938,6 +940,37 @@ function lldpFrame(w: Writer, p: Packet) {
   w.end()
 }
 
+function hsrpPayload(w: Writer, p: Packet) {
+  const prio = Number(p.info.match(/prioridad (\d+)/)?.[1] ?? 100)
+  const active = /estado activo/.test(p.info)
+  w.field('Versión / opcode', 'HSRPv1 / hello (0)', [0, 0])
+  w.field('Estado', active ? 'activo (16)' : 'standby (8)', [active ? 16 : 8])
+  w.field('Temporizadores', 'hello 3 s · hold 10 s', [3, 10])
+  w.field('Prioridad', `${prio}`, [prio])
+  w.field('Grupo', '1', [1])
+  w.field('Reservado', '0', [0])
+  w.field('Autenticación', 'texto «cisco»', [...ascii('cisco'), 0, 0, 0])
+  w.field('IP virtual', '192.168.1.254', ipBytes('192.168.1.254'))
+}
+
+function lacpFrame(w: Writer, p: Packet) {
+  const port = Number(p.info.match(/Gi0\/(\d)/)?.[1] ?? 1)
+  const synced = /sincronizado|segundo enlace/.test(p.info)
+  const st = synced ? 0x3d : 0x0d // activity + aggregation + (sync, collecting, distributing)
+  w.begin('eth', 'Ethernet II')
+  w.field('MAC destino', '01:80:c2:00:00:02 (protocolos lentos)', [0x01, 0x80, 0xc2, 0, 0, 0x02])
+  w.field('MAC origen', `${fmtMac(macOf(p.from))} (${NODES[p.from].label})`, macOf(p.from))
+  w.field('EtherType', 'Slow Protocols (0x8809)', [0x88, 0x09])
+  w.end()
+  w.begin('app', 'LACP')
+  w.field('Subtipo / versión', 'LACP (1) / 1', [1, 1])
+  w.field('Actor', `sistema ${fmtMac(macOf(p.from))} · clave 1 · puerto Gi0/${port}` + (synced ? ' · sincronizado' : ''), [1, 20, ...u16(32768), ...macOf(p.from), ...u16(1), ...u16(128), ...u16(port), st, 0, 0, 0])
+  w.field('Partner', synced ? `sistema ${fmtMac(macOf(p.to))} · clave 1 · puerto Gi0/${port}` : 'aún desconocido (ceros)', [2, 20, ...(synced ? [...u16(32768), ...macOf(p.to), ...u16(1), ...u16(128), ...u16(port), st] : Array(15).fill(0)), 0, 0, 0])
+  w.field('Colector', 'retardo máximo 0', [3, 16, 0, 0, ...Array(12).fill(0)])
+  w.field('Fin', 'TLV 0', [0, 0, ...Array(50).fill(0)])
+  w.end()
+}
+
 /** Builds a pure layer-2 frame (802.11, EAPOL, PPPoE, STP). */
 function l2Frame(w: Writer, p: Packet): number {
   if (p.proto === 'BLE') {
@@ -946,6 +979,10 @@ function l2Frame(w: Writer, p: Packet): number {
   }
   if (p.proto === 'LLDP') {
     lldpFrame(w, p)
+    return 1
+  }
+  if (p.proto === 'LACP') {
+    lacpFrame(w, p)
     return 1
   }
   const seed = p.info + p.t
@@ -1175,11 +1212,12 @@ export function decodePacket(p: Packet, opts: { full?: boolean } = {}): Frame {
 
   const srcNode = p.from === 'switch' && p.proto !== '802.1Q' ? 'client' : p.from
   const srcMacNode: NodeId = relay ? l3From : srcNode
-  const tagged = p.proto === '802.1Q' && /etiquetada/.test(p.info)
+  const vlanId = p.vlan ?? (p.proto === '802.1Q' && /etiquetada/.test(p.info) ? 20 : 0)
+  const tagged = vlanId > 0
   w.begin('eth', tagged ? 'Ethernet II + 802.1Q' : 'Ethernet II')
   w.field('MAC destino', dstMacTxt, dstMac)
   w.field('MAC origen', `${fmtMac(macOf(srcMacNode))} (${NODES[srcMacNode].label})`, macOf(srcMacNode))
-  if (tagged) w.field('Etiqueta 802.1Q', 'TPID 0x8100, prioridad 0, VLAN 20', [0x81, 0x00, 0x00, 20])
+  if (tagged) w.field('Etiqueta 802.1Q', `TPID 0x8100, prioridad 0, VLAN ${vlanId}`, [0x81, 0x00, vlanId >> 8, vlanId & 0xff])
   w.field('EtherType', tr.kind === 'arp' ? 'ARP (0x0806)' : v6 ? 'IPv6 (0x86dd)' : 'IPv4 (0x0800)', tr.kind === 'arp' ? [0x08, 0x06] : v6 ? [0x86, 0xdd] : [0x08, 0x00])
   w.end()
 
@@ -1309,22 +1347,25 @@ export function decodePacket(p: Packet, opts: { full?: boolean } = {}): Frame {
   } else {
     const exceeded = /Time Exceeded/.test(p.info)
     const unreachable = /Unreachable/.test(p.info)
+    const prohibited = unreachable && /prohibida/.test(p.info)
     w.begin('icmp', 'ICMP')
     if (exceeded || unreachable) {
-      // error messages quote the offending IP header + first 8 bytes of the probe
-      const hopTtl = exceeded ? 1 : 1
+      // error messages quote the offending IP header + the first 8 bytes of its payload
+      const srcN: NodeId = prohibited ? 'pc2' : 'client'
+      const hopTtl = prohibited ? 64 : 1
       const probePort = 33434 + (p.from === 'router' ? 0 : p.from === 'access' ? 1 : 2)
-      const inner = [0x45, 0, ...u16(60), ...u16(0x2b00 + probePort), 0, 0, hopTtl, 17, 0, 0, ...ipBytes(ipOf('client')), ...ipBytes(ipOf('web'))]
+      const inner = [0x45, 0, ...u16(prohibited ? 44 : 60), ...u16(0x2b00 + probePort), 0, 0, hopTtl, prohibited ? 6 : 17, 0, 0, ...ipBytes(ipOf(srcN)), ...ipBytes(ipOf('web'))]
       const ick = checksum(inner)
       inner[10] = ick >> 8
       inner[11] = ick & 0xff
       w.field('Tipo', exceeded ? 'Time Exceeded (11)' : 'Destination Unreachable (3)', [exceeded ? 11 : 3])
-      w.field('Código', exceeded ? 'TTL agotado en tránsito (0)' : 'puerto inalcanzable (3)', [exceeded ? 0 : 3])
+      w.field('Código', exceeded ? 'TTL agotado en tránsito (0)' : prohibited ? 'comunicación prohibida administrativamente (13)' : 'puerto inalcanzable (3)', [exceeded ? 0 : prohibited ? 13 : 3])
       l4CkAt = w.pos()
       w.field('Checksum', '', [0, 0])
       w.field('Sin usar', '0', [0, 0, 0, 0])
-      w.field('Cabecera IP original', `${ipOf('client')} → ${ipOf('web')}, TTL ${hopTtl}`, inner)
-      w.field('8 bytes de la sonda', `UDP 52800 → ${probePort}`, [...u16(52800), ...u16(probePort), ...u16(40), 0, 0])
+      w.field('Cabecera IP original', `${ipOf(srcN)} → ${ipOf('web')}, TTL ${hopTtl}`, inner)
+      if (prohibited) w.field('Inicio del TCP original', 'TCP 51023 → 23 (el SYN descartado)', [...u16(51023), ...u16(23), 0, 0, 0, 0])
+      else w.field('8 bytes de la sonda', `UDP 52800 → ${probePort}`, [...u16(52800), ...u16(probePort), ...u16(40), 0, 0])
     } else {
       const reply = p.kind === 'res'
       const seq = Number(p.info.match(/seq=(\d+)/)?.[1] ?? 1)
@@ -1350,6 +1391,7 @@ export function decodePacket(p: Packet, opts: { full?: boolean } = {}): Frame {
     } else if (p.proto === 'DNS' || p.proto === 'mDNS') dnsPayload(w, p, fromServer)
     else if (p.proto === 'DHCP') dhcpPayload(w, p, fromClient)
     else if (p.proto === 'NTP') ntpPayload(w, p, fromClient)
+    else if (p.proto === 'HSRP') hsrpPayload(w, p)
     else if (p.proto === 'BGP') bgpPayload(w, p)
     else if (p.proto === 'WebSocket' && !/GET|101/.test(p.info)) wsFrame(w, p, fromClient)
     else if (['TLS', 'QUIC', 'HTTP/3', 'WireGuard', 'UDP'].includes(p.proto) || (p.proto === 'SSH' && !/Versión/.test(p.info))) cryptoPayload(w, p)

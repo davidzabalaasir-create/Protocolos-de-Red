@@ -155,7 +155,7 @@ export const REF_TABLES: RefTable[] = [
       { c: ['OSPF', 'hello 10 s · dead 40 s (redes broadcast)'], lesson: 'ospf' },
       { c: ['OSPF (coste)', '100 Mb/s de referencia ÷ ancho de banda'] },
       { c: ['EIGRP', 'hello 5 s · hold 15 s'] },
-      { c: ['HSRP', 'hello 3 s · hold 10 s · prioridad 100'] },
+      { c: ['HSRP', 'hello 3 s · hold 10 s · prioridad 100'], lesson: 'hsrp' },
       { c: ['VRRP', 'anuncio 1 s · prioridad 100'], lesson: 'vrrp' },
       { c: ['RIPv2', 'actualización 30 s · invalid 180 s'], lesson: 'rip' },
     ],
