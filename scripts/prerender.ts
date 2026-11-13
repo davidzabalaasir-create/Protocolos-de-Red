@@ -84,6 +84,20 @@ export function prerenderLessons(): Plugin {
 </main>`,
       )
 
+      writePage(
+        'consola',
+        `${SITE}/consola/`,
+        'Consola de comandos de router y switch (estilo Cisco IOS) · Protocolos de Red',
+        'Practica show ip route, show ip interface brief, show vlan brief, show mac address-table, ping y la configuración básica sobre la red de las lecciones, con retos guiados.',
+        `<main>
+<h1>Consola: practica los comandos de router y switch</h1>
+<p>Un terminal al estilo Cisco IOS sobre la misma red de las lecciones: show ip interface brief, show ip route, show arp, show mac address-table, show vlan brief, ping, traceroute y configuración básica (hostname, interfaces, VLANs).</p>
+<h2>Retos guiados</h2>
+<p>Ocho retos para aprender a moverte por los modos, leer las tablas del router y del switch y crear una VLAN.</p>
+<p>Parte de <a href="/">Protocolos de Red</a>.</p>
+</main>`,
+      )
+
       // privacy notice: plain static page, the app doesn't mount there (see main.tsx)
       writePage(
         'privacidad',
@@ -104,7 +118,7 @@ export function prerenderLessons(): Plugin {
 </main>`,
       )
 
-      const urls = ['', 'subneteo/', 'referencia/', 'privacidad/', ...PROTOCOLS.map((p) => `${p.id}/`)]
+      const urls = ['', 'subneteo/', 'referencia/', 'consola/', 'privacidad/', ...PROTOCOLS.map((p) => `${p.id}/`)]
       writeFileSync(
         join(outDir, 'sitemap.xml'),
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE}/${u}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n</urlset>\n`,
@@ -113,6 +127,7 @@ export function prerenderLessons(): Plugin {
       for (const [dir, prefix] of [
         ['subneteo', 'SubnetApp-'],
         ['referencia', 'RefApp-'],
+        ['consola', 'ConsoleApp-'],
       ] as const) {
         const chunk = readdirSync(join(outDir, 'assets')).find((f) => f.startsWith(prefix) && f.endsWith('.js'))
         if (chunk) {

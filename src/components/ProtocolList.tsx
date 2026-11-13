@@ -1,4 +1,4 @@
-import { BookMarked, CircleCheck, GraduationCap, Network, Route } from 'lucide-react'
+import { BookMarked, CircleCheck, GraduationCap, Network, Route, SquareTerminal } from 'lucide-react'
 import { memo } from 'react'
 import { OSI_LAYERS, PROTOCOLS } from '../data/protocols'
 import { QUIZ_COUNT } from '../data/quiz-count'
@@ -78,6 +78,15 @@ export const ProtocolList = memo(function ProtocolList({ layer, currentId, progr
         >
           <BookMarked aria-hidden className="size-4" />
           {t('Chuleta y flashcards')}
+        </a>
+        <a
+          href="/consola/"
+          onClick={appLinkClick}
+          onPointerEnter={prefetchSection('consola')}
+          className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-panel px-4 text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2"
+        >
+          <SquareTerminal aria-hidden className="size-4" />
+          {t('Consola de comandos')}
         </a>
       </div>
 

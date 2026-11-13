@@ -9,8 +9,10 @@ export const NAV_EVENT = 'app:navigate'
 const SECTIONS = {
   subneteo: { match: /^\/subneteo\/?$/, load: () => import('../components/subnet/SubnetApp') },
   referencia: { match: /^\/referencia\/?$/, load: () => import('../components/ref/RefApp') },
+  consola: { match: /^\/consola\/?$/, load: () => import('../components/console/ConsoleApp') },
 }
 export type SectionId = keyof typeof SECTIONS
+export const SECTION_IDS = Object.keys(SECTIONS) as SectionId[]
 
 const ready: Partial<Record<SectionId, ComponentType>> = {}
 const loading: Partial<Record<SectionId, Promise<void> | null>> = {}

@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { preferredLang, setLang } from './i18n'
-import { loadedSection, loadSection, NAV_EVENT, prefetchSection, sectionOf } from './lib/nav'
+import { loadedSection, loadSection, NAV_EVENT, prefetchSection, SECTION_IDS, sectionOf } from './lib/nav'
 import { SITE } from './lib/site'
 
 /** Lessons, subnetting or reference, switched in place when the address changes (no page reload). */
@@ -49,10 +49,7 @@ void start.then(() => {
     </StrictMode>,
   )
   // fetch the other views in the background so opening them later is instant
-  const warm = () => {
-    prefetchSection('subneteo')()
-    prefetchSection('referencia')()
-  }
+  const warm = () => SECTION_IDS.forEach((id) => prefetchSection(id)())
   if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 4000 })
   else setTimeout(warm, 2000)
 })

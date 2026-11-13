@@ -206,6 +206,17 @@ export const UI_EN: Record<string, string> = {
   'Sin conexión: se guardará luego': 'Offline: will save later',
   'Progreso guardado': 'Progress saved',
   Privacidad: 'Privacy',
+  // console
+  Consola: 'Console',
+  'Practica los comandos de router y switch (al estilo Cisco IOS) sobre la red de las lecciones.': "Practise router and switch commands (Cisco-IOS style) on the lessons' network.",
+  'La salida de los comandos está en inglés, como en los equipos reales.': 'Command output is in English, like on real network gear.',
+  'Historial con ↑ ↓ · autocompletar con Tab · ayuda con ?': 'History with ↑ ↓ · complete with Tab · help with ?',
+  'Terminal de {d}': '{d} terminal',
+  'Línea de comandos de {d}': '{d} command line',
+  'Limpiar la pantalla': 'Clear the screen',
+  Retos: 'Challenges',
+  'Reto completado': 'Challenge completed',
+  'Consola de comandos': 'Command console',
   // subnetting
   Subneteo: 'Subnetting',
   'Calculadora de subredes': 'Subnet calculator',

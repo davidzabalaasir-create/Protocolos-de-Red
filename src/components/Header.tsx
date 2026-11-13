@@ -1,4 +1,4 @@
-import { BookMarked, Boxes, Menu, Moon, Network, Sun } from 'lucide-react'
+import { BookMarked, Boxes, Menu, Moon, Network, SquareTerminal, Sun } from 'lucide-react'
 import { memo } from 'react'
 import { setLang, useLang, useT } from '../i18n'
 import { appLinkClick, prefetchSection } from '../lib/nav'
@@ -56,6 +56,18 @@ export const Header = memo(function Header({ theme, onTheme, onOpenMenu }: Props
       >
         <BookMarked aria-hidden className="size-4" />
         {t('Referencia')}
+      </a>
+
+      <a
+        href="/consola/"
+        onClick={appLinkClick}
+        onPointerEnter={prefetchSection('consola')}
+        onFocus={prefetchSection('consola')}
+        aria-current={typeof location !== 'undefined' && location.pathname.startsWith('/consola') ? 'page' : undefined}
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-line-strong bg-panel px-3 text-sm font-bold shadow-sm hover:border-accent hover:bg-panel-2 aria-[current]:border-accent aria-[current]:bg-accent aria-[current]:text-accent-fg"
+      >
+        <SquareTerminal aria-hidden className="size-4" />
+        {t('Consola')}
       </a>
 
       <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
