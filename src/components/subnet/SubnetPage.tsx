@@ -108,7 +108,7 @@ export function SubnetPage({ initial }: { initial: SubnetRoute }) {
               if (e.key === 'ArrowRight') move(1)
               else if (e.key === 'ArrowLeft') move(-1)
             }}
-            className="flex min-h-11 items-center gap-1.5 rounded-md px-3 text-xs font-bold tracking-wider uppercase hover:bg-panel-2 aria-selected:bg-accent aria-selected:text-accent-fg"
+            className="flex min-h-11 items-center gap-1.5 rounded-md px-2 text-xs font-bold tracking-wider uppercase hover:bg-panel-2 aria-selected:bg-accent aria-selected:text-accent-fg sm:px-3"
           >
             <Icon aria-hidden className="size-4" />
             {t(label)}
