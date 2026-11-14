@@ -20,6 +20,8 @@ export interface Iface {
   desc?: string
   /** access VLAN (switch ports) */
   vlan?: number
+  /** switchport mode trunk: carries every VLAN, so it leaves show vlan brief */
+  trunk?: boolean
 }
 
 export interface Vlan {
@@ -201,7 +203,7 @@ const macTable = () =>
 function vlanBrief(d: Dev) {
   const ports = (v: number) =>
     d.ifaces
-      .filter((i) => i.vlan === v)
+      .filter((i) => i.vlan === v && !i.trunk)
       .map((i) => i.short)
       .join(', ')
   const rows = [...d.vlans]
@@ -210,13 +212,30 @@ function vlanBrief(d: Dev) {
   return banner(['VLAN Name                             Status    Ports', '---- -------------------------------- --------- -------------------------------', ...rows])
 }
 
+function interfacesTrunk(d: Dev) {
+  const trunks = d.ifaces.filter((i) => i.trunk)
+  if (!trunks.length) return ''
+  const active = [...d.vlans].sort((a, b) => a.id - b.id).map((v) => v.id).join(',')
+  return banner([
+    'Port        Mode             Encapsulation  Status        Native vlan',
+    ...trunks.map((i) => pad(i.short, 12) + pad('on', 17) + pad('802.1q', 15) + pad(up(i) ? 'trunking' : 'not-trunking', 14) + '1'),
+    '',
+    'Port        Vlans allowed on trunk',
+    ...trunks.map((i) => pad(i.short, 12) + '1-4094'),
+    '',
+    'Port        Vlans allowed and active in management domain',
+    ...trunks.map((i) => pad(i.short, 12) + active),
+  ])
+}
+
 function runningConfig(d: Dev) {
   const lines = ['Building configuration...', '', '!', `hostname ${d.hostname}`, '!']
   for (const v of d.vlans.filter((x) => x.id !== 1)) lines.push(`vlan ${v.id}`, ` name ${v.name}`, '!')
   for (const i of d.ifaces) {
     lines.push(`interface ${i.name}`)
     if (i.desc) lines.push(` description ${i.desc}`)
-    if (i.vlan && i.vlan !== 1) lines.push(' switchport mode access', ` switchport access vlan ${i.vlan}`)
+    if (i.trunk) lines.push(' switchport mode trunk')
+    else if (i.vlan && i.vlan !== 1) lines.push(' switchport mode access', ` switchport access vlan ${i.vlan}`)
     if (i.ip) lines.push(` ip address ${i.ip} ${i.mask}`)
     lines.push(i.admin ? ' no shutdown' : ' shutdown', '!')
   }
@@ -301,6 +320,8 @@ export function findIface(d: Dev, args: string[]): Iface | undefined {
   })
 }
 
+const setTrunk = (d: Dev, trunk: boolean): Dev => ({ ...d, saved: false, ifaces: d.ifaces.map((i) => (i.name === d.sel ? { ...i, trunk } : i)) })
+
 const CMDS: Cmd[] = [
   { path: ['enable'], modes: ['user'], es: 'Entrar en modo privilegiado', en: 'Enter privileged mode', run: (d) => ({ d: { ...d, mode: 'exec' }, out: '' }) },
   { path: ['disable'], modes: ['exec'], es: 'Volver al modo usuario', en: 'Back to user mode', run: (d) => ({ d: { ...d, mode: 'user' }, out: '' }) },
@@ -372,7 +393,15 @@ const CMDS: Cmd[] = [
     kinds: ['switch'],
     es: 'Poner el puerto en modo acceso',
     en: 'Put the port in access mode',
-    run: (d) => (d.sel === 'Vlan1' ? { out: '% Invalid input detected.' } : { out: '' }),
+    run: (d) => (d.sel === 'Vlan1' ? { out: '% Invalid input detected.' } : { d: setTrunk(d, false), out: '' }),
+  },
+  {
+    path: ['switchport', 'mode', 'trunk'],
+    modes: ['config-if'],
+    kinds: ['switch'],
+    es: 'Poner el puerto en modo troncal (lleva todas las VLANs)',
+    en: 'Put the port in trunk mode (carries every VLAN)',
+    run: (d) => (d.sel === 'Vlan1' ? { out: '% Invalid input detected.' } : { d: setTrunk(d, true), out: '' }),
   },
   {
     path: ['switchport', 'access', 'vlan'],
@@ -441,6 +470,7 @@ const CMDS: Cmd[] = [
   { path: ['show', 'ip', 'route'], modes: ['user', 'exec'], es: 'Tabla de enrutamiento', en: 'Routing table', run: (d) => ({ out: ipRoute(d) }) },
   { path: ['show', 'arp'], modes: ['user', 'exec'], es: 'Tabla ARP (IP ↔ MAC)', en: 'ARP table (IP ↔ MAC)', run: (d) => ({ out: showArp(d) }) },
   { path: ['show', 'mac', 'address-table'], modes: ['user', 'exec'], kinds: ['switch'], es: 'Tabla de MACs aprendidas', en: 'Learned MAC table', run: () => ({ out: macTable() }) },
+  { path: ['show', 'interfaces', 'trunk'], modes: ['user', 'exec'], kinds: ['switch'], es: 'Puertos troncales y sus VLANs', en: 'Trunk ports and their VLANs', run: (d) => ({ out: interfacesTrunk(d) }) },
   { path: ['show', 'vlan', 'brief'], modes: ['user', 'exec'], kinds: ['switch'], es: 'VLANs y sus puertos', en: 'VLANs and their ports', run: (d) => ({ out: vlanBrief(d) }) },
   { path: ['show', 'spanning-tree'], modes: ['user', 'exec'], kinds: ['switch'], es: 'Estado de STP', en: 'STP state', run: () => ({ out: spanningTree() }) },
   { path: ['show', 'cdp', 'neighbors'], modes: ['user', 'exec'], es: 'Vecinos descubiertos (CDP)', en: 'Discovered neighbours (CDP)', run: (d) => ({ out: neighbors(d) }) },
@@ -467,7 +497,10 @@ export function run(d: Dev, input: string): RunResult {
   const lower = tokens.map((t) => t.toLowerCase())
   const cmds = usable(d)
   const matchesAt = (c: Cmd, n: number) => c.path.slice(0, n).every((w, i) => w.startsWith(lower[i]))
-  const full = cmds.filter((c) => tokens.length >= c.path.length && matchesAt(c, c.path.length) && (tokens.length === c.path.length || c.args))
+  const matched = cmds.filter((c) => tokens.length >= c.path.length && matchesAt(c, c.path.length) && (tokens.length === c.path.length || c.args))
+  // 'show interfaces trunk' beats 'show interfaces <interfaz>': the longest fixed path wins
+  const longest = Math.max(0, ...matched.map((c) => c.path.length))
+  const full = matched.filter((c) => c.path.length === longest)
   if (full.length === 1) {
     const r = full[0].run(d, tokens.slice(full[0].path.length))
     return { d: r.d ?? d, out: r.out, cmd: full[0].path.join(' '), args: tokens.slice(full[0].path.length) }

@@ -75,6 +75,22 @@ describe('IOS console', () => {
     expect(run(d, 'show vlan brief').out).toMatch(/30\s+Invitados.*Gi0\/4/)
     expect(run(session(sw, 'enable', 'conf t', 'interface g0/4').d, 'switchport mode access').out).toBe('')
     expect(run(session(sw, 'enable', 'conf t', 'interface vlan1').d, 'switchport mode access').out).toContain('% Invalid input')
+  })
+
+  it('switch: trunk ports', () => {
+    const sw = makeSwitch()
+    expect(run(sw, 'show interfaces trunk').out).toBe('')
+    const { d } = session(sw, 'enable', 'conf t', 'interface g0/1', 'switchport mode trunk', 'end')
+    expect(run(d, 'show interfaces trunk').out).toMatch(/Gi0\/1\s+on\s+802\.1q\s+trunking\s+1/)
+    expect(run(d, 'show vlan brief').out).not.toMatch(/Gi0\/1/)
+    expect(run(d, 'show running-config').out).toContain(' switchport mode trunk')
+    // 'show interfaces <iface>' still works next to 'show interfaces trunk'
+    expect(run(d, 'show interfaces g0/1').out).toContain('GigabitEthernet0/1')
+    // back to access mode
+    const back = session(d, 'conf t', 'interface g0/1', 'switchport mode access', 'end').d
+    expect(run(back, 'show vlan brief').out).toMatch(/Gi0\/1/)
+    expect(run(back, 'show interfaces trunk').out).toBe('')
+    expect(run(session(sw, 'enable', 'conf t', 'interface vlan1').d, 'switchport mode trunk').out).toContain('% Invalid input')
     // router has no VLAN commands
     expect(run(session(makeRouter(), 'enable', 'conf t').d, 'vlan 30').out).toContain('% Invalid input')
   })
