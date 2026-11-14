@@ -1,6 +1,6 @@
 # Protocolos de Red
 
-Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de **66 lecciones** (62 protocolos y 4 escenarios de fallo) paso a paso, en un diagrama de red, un diagrama de secuencia y una tabla tipo Wireshark, con **cada paquete decodificado byte a byte**.
+Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de **71 lecciones** (67 protocolos y 4 escenarios de fallo) paso a paso, en un diagrama de red, un diagrama de secuencia y una tabla tipo Wireshark, con **cada paquete decodificado byte a byte**.
 
 **🌐 En vivo: https://protocolos-de-red-eight.vercel.app** (Vercel) · https://protocolos-de-red.david-zabala-asir.workers.dev (Cloudflare)
 
@@ -14,8 +14,8 @@ Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de *
 | 6 · Presentación | TLS 1.3 |
 | 5 · Sesión | SOCKS5 |
 | 4 · Transporte | TCP, UDP |
-| 3 · Red | IPv4, IPv6, ICMP, Traceroute, NAT, IGMP (multicast), IPsec, GRE, OSPF, RIP, VRRP, WireGuard |
-| 2 · Enlace | Ethernet y switches, ARP, VLAN 802.1Q, STP, LLDP, PPPoE, Wi-Fi (802.11), WPA3, 802.1X / RADIUS, Wake-on-LAN, Bluetooth LE |
+| 3 · Red | IPv4, IPv6, ICMP, Traceroute, NAT, IGMP (multicast), IPsec, GRE, OSPF, RIP, VRRP, HSRP, enrutamiento inter-VLAN, ACL, WireGuard |
+| 2 · Enlace | Ethernet y switches, ARP, VLAN 802.1Q, STP, EtherChannel (LACP), Port security, LLDP, PPPoE, Wi-Fi (802.11), WPA3, 802.1X / RADIUS, Wake-on-LAN, Bluetooth LE |
 
 ## Funciones
 
@@ -27,7 +27,7 @@ Explorador interactivo de protocolos de red: mira cómo viajan los paquetes de *
   - *Resumen*: descripción, capa, puerto, transporte y RFC.
   - *Inspector*: cada paquete construido byte a byte (Ethernet, 802.11, 802.1Q, IPv4 con fragmentación, IPv6/ICMPv6, TCP/UDP/ICMP/ARP y la carga de cada protocolo: DNS, DHCP, STUN, RTP, SMB2, Modbus, MQTT, SNMP, LDAP, RADIUS, IKEv2, ESP, OSPF, IGMP, PPPoE, EAPOL, STP…), con longitudes y checksums IPv4/IPv6/TCP/UDP/ICMP/IGMP calculados de verdad. Al pasar por un campo se resaltan sus bytes en el volcado hexadecimal.
   - *Quiz*: preguntas con explicación para cada protocolo.
-- **Progreso guardado**: una lección cuenta como completada al verla entera y acertar su quiz; el panel de protocolos muestra el avance (n/66).
+- **Progreso guardado**: una lección cuenta como completada al verla entera y acertar su quiz; el panel de protocolos muestra el avance (n/71).
 - **Flujo de paquetes**: reproducir/pausa, paso a paso, retroceder, reiniciar, velocidad 0.5×–2×, barra de progreso, botón para inspeccionar cada paquete y atajos (`Espacio`, `←`/`→`, `R`).
 - **Descarga en `.pcapng`**: cada lección se descarga como captura real que se abre en Wireshark (Ethernet, 802.11 y Bluetooth LE).
 - **Recorrido guiado** de 15 lecciones, de Ethernet a HTTP/3.
