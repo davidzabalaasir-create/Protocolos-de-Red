@@ -367,6 +367,14 @@ const CMDS: Cmd[] = [
     }),
   },
   {
+    path: ['switchport', 'mode', 'access'],
+    modes: ['config-if'],
+    kinds: ['switch'],
+    es: 'Poner el puerto en modo acceso',
+    en: 'Put the port in access mode',
+    run: (d) => (d.sel === 'Vlan1' ? { out: '% Invalid input detected.' } : { out: '' }),
+  },
+  {
     path: ['switchport', 'access', 'vlan'],
     args: '<nº>',
     modes: ['config-if'],

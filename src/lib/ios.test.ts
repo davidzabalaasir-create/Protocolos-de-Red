@@ -70,9 +70,11 @@ describe('IOS console', () => {
     const sw = makeSwitch()
     expect(run(sw, 'show mac address-table').out).toContain('DYNAMIC')
     expect(run(sw, 'show vlan brief').out).toContain('Impresoras')
-    const { d } = session(sw, 'enable', 'conf t', 'vlan 30', 'name Invitados', 'exit', 'interface g0/4', 'switchport access vlan 30', 'end')
+    const { d } = session(sw, 'enable', 'conf t', 'vlan 30', 'name Invitados', 'exit', 'interface g0/4', 'switchport mode access', 'switchport access vlan 30', 'end')
     expect(d.vlans.find((v) => v.id === 30)?.name).toBe('Invitados')
     expect(run(d, 'show vlan brief').out).toMatch(/30\s+Invitados.*Gi0\/4/)
+    expect(run(session(sw, 'enable', 'conf t', 'interface g0/4').d, 'switchport mode access').out).toBe('')
+    expect(run(session(sw, 'enable', 'conf t', 'interface vlan1').d, 'switchport mode access').out).toContain('% Invalid input')
     // router has no VLAN commands
     expect(run(session(makeRouter(), 'enable', 'conf t').d, 'vlan 30').out).toContain('% Invalid input')
   })
